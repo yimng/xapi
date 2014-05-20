@@ -1,0 +1,2 @@
+install:
+	$(IPROG) rrdd-example.py $(DESTDIR)$(LIBEXECDIR)

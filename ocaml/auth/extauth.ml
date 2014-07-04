@@ -27,6 +27,7 @@ exception Extauth_is_disabled
 let auth_type_NONE = ""
 let auth_type_AD_Likewise = "AD"
 let auth_type_PAM = "PAM"
+let auth_type_JIT = "JIT"
 
 module Ext_auth =
 struct
@@ -39,6 +40,7 @@ struct
   (* xapi_host.enable_extauth, when we do not yet have access here to the global variable host.external_auth_type *)
   let nd auth_type =
 	debug "using external auth plugin %s" auth_type;
+	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>>%s<<<<<<<<<<<<<<<<<<<<<<<<<<<" auth_type;
 	match auth_type with
 	| "" -> (* ext auth is disabled, no plugin available*)
 		begin
@@ -51,6 +53,8 @@ struct
 	(* the Likewise authentication plugin *)
 	| "AD" -> (*windows active directory*)
 		Extauth_plugin_ADlikewise.AuthADlw.methods
+	| "JIT" -> (*JIT company cert*)
+		Extauth_plugin_JIT.AuthJIT.methods
 	(* if no other auth_type fits, then we don't know what to do *) 
 	| _ as uat -> (*error*)
 		begin

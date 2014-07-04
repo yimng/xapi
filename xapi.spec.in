@@ -179,6 +179,9 @@ rm -rf $RPM_BUILD_ROOT
 /etc/xapi.d/plugins/extauth-hook-AD.py
 /etc/xapi.d/plugins/extauth-hook-AD.pyo
 /etc/xapi.d/plugins/extauth-hook-AD.pyc
+/etc/xapi.d/plugins/extauth-hook-JIT.py
+/etc/xapi.d/plugins/extauth-hook-JIT.pyo
+/etc/xapi.d/plugins/extauth-hook-JIT.pyc
 /etc/xapi.d/plugins/iLO.py
 /etc/xapi.d/plugins/iLO.pyo
 /etc/xapi.d/plugins/iLO.pyc

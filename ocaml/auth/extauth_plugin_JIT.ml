@@ -528,6 +528,8 @@ let on_enable config_params =
 	
 	try
                 (* TODO: Test the service is on-line or not  *)
+		let status = Sys.command ("ping %s" ip) in
+		debug "The ping result from %s is: %s" ip status;
 		let extauthconf = [
 			("ip", ip);
 			("port", port)

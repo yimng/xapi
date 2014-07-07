@@ -307,16 +307,9 @@ let likewise_get_sid_byname _subject_name cmd =
 	Raises Not_found (*Subject_cannot_be_resolved*) if authentication is not succesful.
 *)
 let get_subject_identifier _subject_name = 
-	try
-		(* looks up list of users*)
-		let subject_name = get_full_subject_name _subject_name in (* append domain if necessary *)
-		likewise_get_sid_byname subject_name "/opt/likewise/bin/lw-find-user-by-name"
-	with _ ->
-		(* append domain if necessary, lw-find-group-by-name only accepts nt-format names  *)
-		let subject_name = get_full_subject_name ~use_nt_format:true (convert_upn_to_nt_username _subject_name) in 
-		(* looks up list of groups*)
-		likewise_get_sid_byname subject_name "/opt/likewise/bin/lw-find-group-by-name"
-		
+	"JIT/" ^ _subject_name
+
+	
 (* subject_id Authenticate_username_password(string username, string password)
 
 	Takes a username and password, and tries to authenticate against an already configured 
@@ -359,50 +352,11 @@ let authenticate_ticket tgt =
 	Raises Not_found (*Subject_cannot_be_resolved*) if subject_id cannot be resolved by external auth service
 *)
 let query_subject_information subject_identifier = 
-
-	let unmap_lw_space_chars lwname = 
-		let defensive_copy = String.copy lwname in
-		(* CA-29006: map chars in lw-names back to original space chars in windows-names *)
-		(* we use + as the likewise space-replacement because it's an invalid NT-username char in windows *)
-		(* the space-replacement char used by likewise is defined at /etc/likewise/lsassd.conf *)
-		let current_lw_space_replacement = '+' in
-		for i = 0 to String.length defensive_copy - 1
-		do
-			if defensive_copy.[i] = current_lw_space_replacement then defensive_copy.[i] <- ' '
-		done;
-		defensive_copy
-	in
-	let get_value name ls = if List.mem_assoc name ls then List.assoc name ls else "" in
-	let infolist = likewise_get_all_byid subject_identifier in
-	let subject_is_group = (get_value "Uid" infolist)="" in
-	if subject_is_group 
-	then (* subject is group *)
-	     (* in this case, a few info fields are not available: UPN, Uid, Gecos, Account {disabled,expired,locked}, Password expired *)
-		[	("subject-name", unmap_lw_space_chars (get_value "Name" infolist));
-			("subject-gid", get_value "Gid" infolist);
-			("subject-sid", get_value "SID" infolist);
-			("subject-is-group", "true");
-			(*(* comma-separated list of subjects that are contained in this subject *)
-			("contains-byname", List.fold_left (fun (n,v) m ->m^","^v) "" (List.filter (fun (n,v)->n="Member") infolist));*)
-		]
-	else (* subject is user *)
-		let subject_name = unmap_lw_space_chars (get_value "Name" infolist) in
-		let subject_gecos = get_value "Gecos" infolist in
-		[	("subject-name", subject_name);
-			("subject-upn", get_value "UPN" infolist);
-			("subject-uid", get_value "Uid" infolist);
-			("subject-gid", get_value "Gid" infolist);
-			("subject-sid", get_value "SID" infolist);
-			("subject-gecos", subject_gecos);
-			("subject-displayname", if subject_gecos="" then subject_name else subject_gecos);
-			(*("subject-homedir", get_value "Home dir" infolist);*)
-			(*("subject-shell", get_value "Shell" infolist);*)
-			("subject-is-group", "false");
-			("subject-account-disabled", get_value "Account disabled" infolist);
-			("subject-account-expired", get_value "Account expired" infolist);
-			("subject-account-locked", get_value "Account locked" infolist);
-			("subject-password-expired", get_value "Password Expired" infolist);
-		]
+	let subject-name = String.sub subject_identifier 3 (String.length subject_identifier - 3) in
+	[	("subject-name", subject_identifier);
+		("subject-sid", subject_identifier);
+		("subject-is-group", "false");
+	]
 
 
 (* (string list) query_group_membership(string subject_identifier)
@@ -519,24 +473,24 @@ let on_enable config_params =
 	then begin
 		raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"enable requires two config params: ip and port."))
 	end
-        else
+	else
 	
 	let ip = List.assoc "ip" config_params in
 	let port = List.assoc "port" config_params in
 	let (ou_conf,ou_params) = if (List.mem_assoc "ou" config_params) then let ou=(List.assoc "ou" config_params) in ([("ou",ou)],["--ou";ou]) else ([],[]) in
 	
-        let status = Sys.command ("ping -c 1 "^ ip) in
-        debug "The ping result from %s is: %s" ip (string_of_int status);
+	let status = Sys.command ("ping -c 1 "^ ip) in
+	debug "The ping result from %s is: %s" ip (string_of_int status);
 	if status <> 0
 	then begin
 		raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC, "The ip is not reachable"))
 	end
-        else
+	else
 	
 	try
-		let client_sock = socket PF_INET SOCK_STREAM 0 in
-		let inet_addr = inet_addr_of_string ip in
-		connect client_sock (ADDR_INET (inet_addr, port));
+		let client_sock = Unix.socket PF_INET SOCK_STREAM 0 in
+		let inet_addr = Unix.inet_addr_of_string ip in
+		Unix.connect client_sock (Unix.ADDR_INET (inet_addr, int_of_string port));
 		let extauthconf = [
 			("ip", ip);
 			("port", port)

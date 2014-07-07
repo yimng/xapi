@@ -525,11 +525,15 @@ let on_enable config_params =
 	let port = List.assoc "port" config_params in
 	let (ou_conf,ou_params) = if (List.mem_assoc "ou" config_params) then let ou=(List.assoc "ou" config_params) in ([("ou",ou)],["--ou";ou]) else ([],[]) in
 	
+        let status = Sys.command ("ping -c 1"^ ip) in
+        debug "The ping result from %s is: %s" ip (string_of_int status);
+	if status <> 0
+	then begin
+		raise (Auth_signature.Auth_service_error (Auth_signature.EGENERIC, "The ip is not reachable"))
+	end
+        else
 	
 	try
-                (* TODO: Test the service is on-line or not  *)
-		let status = Sys.command ("ping %s" ip) in
-		debug "The ping result from %s is: %s" ip status;
 		let extauthconf = [
 			("ip", ip);
 			("port", port)

@@ -319,8 +319,7 @@ let get_subject_identifier _subject_name =
 *)
 
 let authenticate_username_password _username password = 
-	(* now we return the authenticated user's id *)
-	get_subject_identifier username
+	get_subject_identifier _username
 
 
 (* subject_id Authenticate_ticket(string ticket)
@@ -498,7 +497,12 @@ let on_enable config_params =
 	|Auth_signature.Auth_service_error (errtag,errmsg) as e ->
 		(*errors in stdout, let's bubble them up, making them as user-friendly as possible *)
 		debug "Error enabling external authentication for ip %s : %s" ip errmsg;
-		raise e
+		if has_substr errmsg "63" 
+		then begin 
+			raise (Auth_signature.Auth_service_error (Auth_signature.E_DENIED,"The port is not correct"))
+		end
+		else begin (* general error *)
+			raise e
 
 (* unit on_disable()
 

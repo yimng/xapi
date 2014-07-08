@@ -37,6 +37,7 @@ def after_roles_update(session, args):
     pass
 
 def before_extauth_disable(session, args):
+    pass
 
 # The dispatcher
 if __name__ == "__main__":

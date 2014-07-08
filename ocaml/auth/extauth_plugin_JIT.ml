@@ -302,9 +302,6 @@ let likewise_get_sid_byname _subject_name cmd =
 (* subject_id get_subject_identifier(string subject_name)
 
 	Takes a subject_name (as may be entered into the XenCenter UI when defining subjects -- 
-	see Access Control wiki page); and resolves it to a subject_id against the external 
-	auth/directory service. 
-	Raises Not_found (*Subject_cannot_be_resolved*) if authentication is not succesful.
 *)
 let get_subject_identifier _subject_name = 
 	"JIT/" ^ _subject_name
@@ -322,12 +319,6 @@ let get_subject_identifier _subject_name =
 *)
 
 let authenticate_username_password _username password = 
-	let username = get_full_subject_name _username in (* append domain if necessary *)
-	
-	(* first, we try to authenticated user against our external user database *)
-	(* likewise_common will raise an Auth_failure if external authentication fails *)
-	let (_: (string * string) list) = likewise_common ~stdin_string:password [username] "/opt/likewise/bin/lw-auth-user" in (* no --minimal *)
-	(* no exception raised, then authentication succeeded, *)
 	(* now we return the authenticated user's id *)
 	get_subject_identifier username
 
@@ -352,8 +343,8 @@ let authenticate_ticket tgt =
 	Raises Not_found (*Subject_cannot_be_resolved*) if subject_id cannot be resolved by external auth service
 *)
 let query_subject_information subject_identifier = 
-	let subject-name = String.sub subject_identifier 3 (String.length subject_identifier - 3) in
-	[	("subject-name", subject_identifier);
+	let subject_name = String.sub subject_identifier 3 ((String.length subject_identifier) - 3) in
+	[	("subject-name", subject_name);
 		("subject-sid", subject_identifier);
 		("subject-is-group", "false");
 	]
@@ -488,7 +479,7 @@ let on_enable config_params =
 	else
 	
 	try
-		let client_sock = Unix.socket PF_INET SOCK_STREAM 0 in
+		let client_sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 		let inet_addr = Unix.inet_addr_of_string ip in
 		Unix.connect client_sock (Unix.ADDR_INET (inet_addr, int_of_string port));
 		let extauthconf = [

@@ -152,6 +152,9 @@ let authenticate_username_password username password =
 let authenticate_ticket tgt = 
 	failwith "authx authenticate_ticket not implemented"
 
+let authenticate_cert cert= 
+	failwith "authx authenticate_cert not implemented"
+
 (* ((string*string) list) query_subject_information(string subject_identifier)
 
 	Takes a subject_identifier and returns the user record from the directory service as 
@@ -334,6 +337,7 @@ let on_xapi_exit () =
 (* Implement the single value required for the module signature *)
 let methods = {Auth_signature.authenticate_username_password = authenticate_username_password;
 	       Auth_signature.authenticate_ticket = authenticate_ticket;
+	       Auth_signature.authenticate_cert = authenticate_cert;
 	       Auth_signature.get_subject_identifier = get_subject_identifier;
 	       Auth_signature.query_subject_information = query_subject_information;
 	       Auth_signature.query_group_membership = query_group_membership;

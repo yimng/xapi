@@ -319,7 +319,7 @@ let get_subject_identifier _subject_name =
 *)
 
 let authenticate_username_password _username password = 
-	get_subject_identifier _username
+	faiwith "You should not use authenticate_username_password with cert"
 
 
 (* subject_id Authenticate_ticket(string ticket)
@@ -330,6 +330,9 @@ let authenticate_username_password _username password =
 	(* future single sign-on feature *)
 let authenticate_ticket tgt = 
 	failwith "extauth_plugin authenticate_ticket not implemented"
+
+let authenticate_cert tgt = 
+	()
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 
@@ -375,55 +378,6 @@ let query_group_membership subject_identifier =
 		subject_identifier
 		(List.fold_left (fun p pp->if p="" then pp else p^","^pp) "" subject_sid_membership_list);
 	subject_sid_membership_list
-
-(*
-	In addition, there are some event hooks that auth modules implement as follows:
-*)
-
-let is_likewise_server_available max =
-	let rec test i = (* let's test this many times *)
-		if i > max then false (* we give up *)
-		else begin (* let's test *)
-			(try
-				(* (1) we _need_ to use a username contained in our domain, otherwise test (2) doesn't work *)
-				(* Microsoft KB/Q243330 article provides the KRBTGT account as a well-known built-in SID in AD *)
-				(* Microsoft KB/Q229909 article says that KRBTGT account cannot be renamed or enabled, making *)
-				(* it the perfect target for such a test using a username (Administrator account can be renamed). *)
-				let username = "KRBTGT" in (* domain name prefix automatically added by our internal AD plugin functions *)
-				let sid = get_subject_identifier username in (* use our well-known KRBTGT builtin username in AD *)
-				(* OK, we found this username! *)
-				debug "Request %i/%i to external authentication server successful: user %s was found" i max username;
-				
-				(* (2) CA-25427: test (1) above may succeed (because of likewise caching stale AD information) *)
-				(* even though the AD domain is offline (error 32888), usually because /etc/resolv.conf is not *)
-				(* pointing to the AD server. This test should catch if the domain is offline by calling lw-find-by-sid *)
-				(* using a domain SID. We must use a _domain_ SID. A universal SID like S-1-1-0 doesn't work for this test. *)
-				let (_: (string*string) list) = query_subject_information sid in (* use KRBTGT's domain SID *)
-				debug "Request %i/%i to external authentication server successful: sid %s was found" i max sid;
-				
-				true
-			with
-				| Not_found -> (* that means that likewise is responding to at least cached subject queries. *)
-					(* in this case, KRBTGT wasn't found in the AD domain. this usually indicates that the *)
-					(* AD domain is offline/inaccessible to likewise, which will cause problems, specially *)
-					(* to the ssh python hook-script, so we need to try again until KRBTGT is found, indicating *)
-					(* that the domain is online and accessible to likewise queries *)
-					debug "Request %i/%i to external authentication server returned KRBTGT Not_found, waiting 5 secs to try again" i max;
-					Thread.delay 5.0; (*wait 5 seconds*)
-					(* try again *)
-					test (i+1)
-				| e -> (* ERROR: anything else means that the server is NOT responding adequately *)
-					debug "Request %i/%i to external authentication server failed, waiting 5 secs to try again: %s" i max (ExnHelper.string_of_exn e);
-					Thread.delay 5.0; (*wait 5 seconds*)
-					(* try again *)
-					test (i+1)
-			)
-		end
-	in
-	begin
-		debug "Testing if external authentication server is accepting requests...";
-		test 0
-	end
 
 (* converts from domain.com\user to user@domain.com, in case domain.com is present in the subject_name *)
 let convert_nt_to_upn_username subject_name =
@@ -503,6 +457,7 @@ let on_enable config_params =
 		end
 		else begin (* general error *)
 			raise e
+		end
 
 (* unit on_disable()
 
@@ -545,6 +500,7 @@ let on_xapi_exit () =
 (* Implement the single value required for the module signature *)
 let methods = {Auth_signature.authenticate_username_password = authenticate_username_password;
 	       Auth_signature.authenticate_ticket = authenticate_ticket;
+	       Auth_signature.authenticate_cert = authenticate_cert;
 	       Auth_signature.get_subject_identifier = get_subject_identifier;
 	       Auth_signature.query_subject_information = query_subject_information;
 	       Auth_signature.query_group_membership = query_group_membership;

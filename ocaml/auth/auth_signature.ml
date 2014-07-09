@@ -58,6 +58,12 @@ type t =
 	 As above but uses a ticket as credentials (i.e. for single sign-on)
       *)
       authenticate_ticket : string -> string;
+
+      (* subject_id Authenticate_cert(string cert)
+	 
+	 As above but uses a cert as credentials
+      *)
+      authenticate_cert: string -> string;
     
       (* subject_id get_subject_identifier(string subject_name)
      

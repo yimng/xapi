@@ -346,8 +346,7 @@ let sendrequest_plain str s =
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
-				let (_: string) = Unixext.really_read_string s (Int64.to_int l) in
-				()
+				Unixext.really_read_string s (Int64.to_int l)
 			| None -> failwith "Need a content length"
 	)
 
@@ -465,6 +464,11 @@ let on_enable config_params =
 			(fun __context -> 
 				let host = Helpers.get_localhost ~__context in
 				Db.Host.set_external_auth_configuration ~__context ~self:host ~value:extauthconf;
+                let conf = Db.Host.get_external_auth_configuration ~__context
+                ~self:host in
+                debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+                List.iter (fun x -> let x = snd x in Printf.printf "%s" x) conf;
+                debug "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 				debug "added external_auth_configuration for host %s" (Db.Host.get_name_label ~__context ~self:host)
 			);
 		() (* OK, return unit*)

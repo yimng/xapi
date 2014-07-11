@@ -1,3 +1,4 @@
+OCAMlPACKS =+ http-svr
 OTHER_CLIBS = -cclib -lpam
 OCAMLINCLUDES += ../autogen ../idl/ocaml_backend ../idl ../xapi ..
 

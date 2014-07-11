@@ -330,17 +330,11 @@ let authenticate_username_password _username password =
 	(* future single sign-on feature *)
 let authenticate_ticket tgt = 
 	failwith "extauth_plugin authenticate_ticket not implemented"
-
-let authenticate_cert tgt = 
-	let ip = ref "192.168.1.59" in
-	let port = ref "8843" in
-	with_connection !ip !port (sendrequest_plain tgt)
-
 	 
 let with_connection ip port f =
 	let inet_addr = Unix.inet_addr_of_string ip in
 	let addr = Unix.ADDR_INET(inet_addr, port) in
-	let s = Unix.socket.Unix.PF_INET Unix.SOCK_STREAM 0 in
+	let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 	Unix.connect s addr;
 	Unixext.set_tcp_nodelay s true;
 	finally
@@ -348,16 +342,19 @@ let with_connection ip port f =
 		(fun () -> Unix.close s)
 
 let sendrequest_plain str s =
-	Http_client.rpc false s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~body:str Http.Post "/MessageService")
+	Http_client.rpc s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~body:str Http.Post "/MessageService")
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
 				let (_: string) = Unixext.really_read_string s (Int64.to_int l) in
-				Printf.printf "Read [%s]\n" x;
-				flush stdout
 				()
 			| None -> failwith "Need a content length"
 	)
+
+let authenticate_cert tgt = 
+	let ip = "192.168.1.59" in
+	let port = 8843 in
+	with_connection ip port (sendrequest_plain tgt)
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 

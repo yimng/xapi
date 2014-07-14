@@ -318,20 +318,6 @@ let get_subject_identifier _subject_name =
 	Raises auth_failure if authentication is not successful
 *)
 
-let authenticate_username_password _username password = 
-	(*failwith "You should not use authenticate_username_password with cert"*)
-	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>test<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
-					  "<message>\r\n"^
-					  "<head>\r\n"^
-					  "<version>1.0</version>\r\r"^
-					  "<serviceType>OriginalService</serviceType>\r\n"^
-					  "</head>\r\n"^
-					  "<appId>testId</appId>\r\n"^
-					  "</body>\r\n"^
-					  "</message>\r\n"
-
-
 (* subject_id Authenticate_ticket(string ticket)
 
 	As above but uses a ticket as credentials (i.e. for single sign-on)
@@ -369,6 +355,20 @@ let authenticate_cert tgt =
         let port = List.assoc "port" conf in
         with_connection ip (int_of_string port) (sendrequest_plain tgt)
     )
+
+
+let authenticate_username_password _username password = 
+	(*failwith "You should not use authenticate_username_password with cert"*)
+	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>test<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+	authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
+					  "<message>\r\n"^
+					  "<head>\r\n"^
+					  "<version>1.0</version>\r\r"^
+					  "<serviceType>OriginalService</serviceType>\r\n"^
+					  "</head>\r\n"^
+					  "<appId>testId</appId>\r\n"^
+					  "</body>\r\n"^
+					  "</message>\r\n"
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 

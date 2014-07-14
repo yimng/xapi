@@ -319,7 +319,9 @@ let get_subject_identifier _subject_name =
 *)
 
 let authenticate_username_password _username password = 
-	failwith "You should not use authenticate_username_password with cert"
+	(*failwith "You should not use authenticate_username_password with cert"*)
+	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>test<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	authenticate_cert "OriginalService"
 
 
 (* subject_id Authenticate_ticket(string ticket)
@@ -353,6 +355,7 @@ let sendrequest_plain str s =
 let authenticate_cert tgt = 
 	Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
+        let host = Helpers.get_localhost ~__context in
         let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
         let ip = List.assoc "ip" conf in
         let port = List.assoc "port" conf in
@@ -468,7 +471,6 @@ let on_enable config_params =
 			(fun __context -> 
 				let host = Helpers.get_localhost ~__context in
 				Db.Host.set_external_auth_configuration ~__context ~self:host ~value:extauthconf;
-                with_connection "192.168.1.59" 8443 (sendrequest_plain "Origen")
 				debug "added external_auth_configuration for host %s" (Db.Host.get_name_label ~__context ~self:host)
 			);
 		() (* OK, return unit*)

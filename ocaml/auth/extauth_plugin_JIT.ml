@@ -321,7 +321,15 @@ let get_subject_identifier _subject_name =
 let authenticate_username_password _username password = 
 	(*failwith "You should not use authenticate_username_password with cert"*)
 	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>test<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-	authenticate_cert "OriginalService"
+	authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
+					  "<message>\r\n"^
+					  "<head>\r\n"^
+					  "<version>1.0</version>\r\r"^
+					  "<serviceType>OriginalService</serviceType>\r\n"^
+					  "</head>\r\n"^
+					  "<appId>testId</appId>\r\n"^
+					  "</body>\r\n"^
+					  "</message>\r\n"
 
 
 (* subject_id Authenticate_ticket(string ticket)

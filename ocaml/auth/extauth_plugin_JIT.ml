@@ -351,9 +351,10 @@ let sendrequest_plain str s =
 	)
 
 let authenticate_cert tgt = 
-	let ip = "192.168.1.59" in
-	let port = 8843 in
-	with_connection ip port (sendrequest_plain tgt)
+    let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
+    let ip = List.assoc "ip" conf in
+    let port = List.assoc "port" conf in
+	with_connection ip (int_of_string port) (sendrequest_plain tgt)
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 
@@ -464,11 +465,7 @@ let on_enable config_params =
 			(fun __context -> 
 				let host = Helpers.get_localhost ~__context in
 				Db.Host.set_external_auth_configuration ~__context ~self:host ~value:extauthconf;
-                let conf = Db.Host.get_external_auth_configuration ~__context
-                ~self:host in
-                debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-                List.iter (fun x -> let x = snd x in Printf.printf "%s" x) conf;
-                debug "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+                with_connection "192.168.1.59" 8443 (sendrequest_plain "Origen")
 				debug "added external_auth_configuration for host %s" (Db.Host.get_name_label ~__context ~self:host)
 			);
 		() (* OK, return unit*)

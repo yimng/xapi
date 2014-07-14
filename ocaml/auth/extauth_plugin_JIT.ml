@@ -351,10 +351,13 @@ let sendrequest_plain str s =
 	)
 
 let authenticate_cert tgt = 
-    let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
-    let ip = List.assoc "ip" conf in
-    let port = List.assoc "port" conf in
-	with_connection ip (int_of_string port) (sendrequest_plain tgt)
+	Server_helpers.exec_with_new_task "authenticate "
+    (fun __context ->
+        let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
+        let ip = List.assoc "ip" conf in
+        let port = List.assoc "port" conf in
+        with_connection ip (int_of_string port) (sendrequest_plain tgt)
+    )
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 

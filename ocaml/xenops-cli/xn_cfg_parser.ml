@@ -11,10 +11,9 @@ type token =
   | EOF
 
 open Parsing;;
-let _ = parse_error;;
 # 2 "xn_cfg_parser.mly"
 open Xn_cfg_types
-# 18 "xn_cfg_parser.ml"
+# 17 "xn_cfg_parser.ml"
 let yytransl_const = [|
   260 (* COMMA *);
   261 (* LBRACKET *);
@@ -160,14 +159,14 @@ let yyact = [|
     Obj.repr(
 # 10 "xn_cfg_parser.mly"
                        ( [] )
-# 164 "xn_cfg_parser.ml"
+# 163 "xn_cfg_parser.ml"
                : Xn_cfg_types.config))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : Xn_cfg_types.config) in
     Obj.repr(
 # 11 "xn_cfg_parser.mly"
                        ( _2 )
-# 171 "xn_cfg_parser.ml"
+# 170 "xn_cfg_parser.ml"
                : Xn_cfg_types.config))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'setting) in
@@ -175,7 +174,7 @@ let yyact = [|
     Obj.repr(
 # 12 "xn_cfg_parser.mly"
                        ( _1 :: _2 )
-# 179 "xn_cfg_parser.ml"
+# 178 "xn_cfg_parser.ml"
                : Xn_cfg_types.config))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 3 : string) in
@@ -184,26 +183,26 @@ let yyact = [|
     Obj.repr(
 # 15 "xn_cfg_parser.mly"
                                 ( _1, _3 )
-# 188 "xn_cfg_parser.ml"
+# 187 "xn_cfg_parser.ml"
                : 'setting))
 ; (fun __caml_parser_env ->
     Obj.repr(
 # 18 "xn_cfg_parser.mly"
                  ( () )
-# 194 "xn_cfg_parser.ml"
+# 193 "xn_cfg_parser.ml"
                : 'endstmt))
 ; (fun __caml_parser_env ->
     Obj.repr(
 # 19 "xn_cfg_parser.mly"
                    ( () )
-# 200 "xn_cfg_parser.ml"
+# 199 "xn_cfg_parser.ml"
                : 'endstmt))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'atom) in
     Obj.repr(
 # 22 "xn_cfg_parser.mly"
             ( _1 )
-# 207 "xn_cfg_parser.ml"
+# 206 "xn_cfg_parser.ml"
                : 'value))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 2 : 'nlok) in
@@ -211,34 +210,34 @@ let yyact = [|
     Obj.repr(
 # 23 "xn_cfg_parser.mly"
                                         ( List _3 )
-# 215 "xn_cfg_parser.ml"
+# 214 "xn_cfg_parser.ml"
                : 'value))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 26 "xn_cfg_parser.mly"
              ( String _1 )
-# 222 "xn_cfg_parser.ml"
+# 221 "xn_cfg_parser.ml"
                : 'atom))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : int) in
     Obj.repr(
 # 27 "xn_cfg_parser.mly"
           ( Int _1 )
-# 229 "xn_cfg_parser.ml"
+# 228 "xn_cfg_parser.ml"
                : 'atom))
 ; (fun __caml_parser_env ->
     Obj.repr(
 # 30 "xn_cfg_parser.mly"
                        ( [] )
-# 235 "xn_cfg_parser.ml"
+# 234 "xn_cfg_parser.ml"
                : 'valuelist))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'values) in
     Obj.repr(
 # 31 "xn_cfg_parser.mly"
                   ( _1 )
-# 242 "xn_cfg_parser.ml"
+# 241 "xn_cfg_parser.ml"
                : 'valuelist))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'values) in
@@ -246,7 +245,7 @@ let yyact = [|
     Obj.repr(
 # 32 "xn_cfg_parser.mly"
                              ( _1 )
-# 250 "xn_cfg_parser.ml"
+# 249 "xn_cfg_parser.ml"
                : 'valuelist))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'atom) in
@@ -254,7 +253,7 @@ let yyact = [|
     Obj.repr(
 # 35 "xn_cfg_parser.mly"
                   ( [ _1 ] )
-# 258 "xn_cfg_parser.ml"
+# 257 "xn_cfg_parser.ml"
                : 'values))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 4 : 'values) in
@@ -264,20 +263,20 @@ let yyact = [|
     Obj.repr(
 # 36 "xn_cfg_parser.mly"
                                     ( _4 :: _1 )
-# 268 "xn_cfg_parser.ml"
+# 267 "xn_cfg_parser.ml"
                : 'values))
 ; (fun __caml_parser_env ->
     Obj.repr(
 # 39 "xn_cfg_parser.mly"
                   ( () )
-# 274 "xn_cfg_parser.ml"
+# 273 "xn_cfg_parser.ml"
                : 'nlok))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'nlok) in
     Obj.repr(
 # 40 "xn_cfg_parser.mly"
                 ( () )
-# 281 "xn_cfg_parser.ml"
+# 280 "xn_cfg_parser.ml"
                : 'nlok))
 (* Entry file *)
 ; (fun __caml_parser_env -> raise (Parsing.YYexit (Parsing.peek_val __caml_parser_env 0)))

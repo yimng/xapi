@@ -370,7 +370,6 @@ let authenticate_cert tgt =
 
 let authenticate_username_password _username password = 
 	(*failwith "You should not use authenticate_username_password with cert"*)
-	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>authenticate_username_password<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 	authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
 					  "<message>\r\n"^
 					  "<head>\r\n"^
@@ -379,7 +378,7 @@ let authenticate_username_password _username password =
 					  "</head>\r\n"^
 					  "<appId>testId</appId>\r\n"^
 					  "</body>\r\n"^
-					  "</message>\r\n";
+					  "</message>\r\n"
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 

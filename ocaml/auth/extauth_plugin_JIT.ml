@@ -347,13 +347,16 @@ let with_stunnel ip port =
 
 
 let sendrequest_plain str s =
+	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>sendrequest_plain start<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 	Http_client.rpc s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~auth:(Http.Basic("", "")) ~body:str Http.Post "/MessageService")
 	(fun response s ->
+		debug ">>>>>>>>response<<<<<<<<";
 		match response.Http.Response.content_length with
 			| Some l ->
 				Unixext.really_read_string s (Int64.to_int l)
 			| None -> failwith "Need a content length"
-	)
+	);
+	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>sendrequest_plain end<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 
 let authenticate_cert tgt = 
 	Server_helpers.exec_with_new_task "authenticate "
@@ -368,7 +371,7 @@ let authenticate_cert tgt =
 
 let authenticate_username_password _username password = 
 	(*failwith "You should not use authenticate_username_password with cert"*)
-	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>test<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>authenticate_username_password<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 	authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
 					  "<message>\r\n"^
 					  "<head>\r\n"^

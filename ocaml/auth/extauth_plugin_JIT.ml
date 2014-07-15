@@ -351,10 +351,7 @@ let sendrequest_plain str s =
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
-				let (x: string) = Unixext.really_read_string s (Int64.to_int l) in
-				Printf.printf "Read [%s]\n" x;
-				flush stdout;
-				""
+				Unixext.really_read_string s (Int64.to_int l) in
 			| None -> failwith "Need a content length"
 	)
 

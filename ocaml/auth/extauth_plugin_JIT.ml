@@ -352,9 +352,10 @@ let sendrequest_plain str s =
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
-				let response = Unixext.really_read_string s (Int64.to_int l) in
-				debug ">>>>>>response:%s<<<<<<<<<<<" response;
-				response
+				let (x: string) = Unixext.really_read_string s (Int64.to_int l) in
+				Printf.printf "Read [%s]\n" x;
+				flush stdout
+				()
 			| None -> failwith "Need a content length"
 	);
 
@@ -370,7 +371,6 @@ let authenticate_cert tgt =
 
 
 let authenticate_username_password _username password = 
-	(*failwith "You should not use authenticate_username_password with cert"*)
 	authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
 					  "<message>\r\n"^
 					  "<head>\r\n"^

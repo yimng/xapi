@@ -337,8 +337,17 @@ let with_connection ip port f =
 		(fun () -> f s)
 		(fun () -> Unix.close s)
 
+let with_stunnel ip port =
+	fun f ->
+			let s = Stunnel.connect ~use_fork_exec_helper:false ~extended_diagnosis:false ip port in
+			let fd = s.Stunnel.fd in
+			finally
+					(fun () -> f fd)
+					(fun () -> Stunnel.disconnect s)
+
+
 let sendrequest_plain str s =
-	Http_client.rpc s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~body:str Http.Post "/MessageService")
+	Http_client.rpc s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~auth:(Http.Basic("", "")) ~body:str Http.Post "/MessageService")
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
@@ -353,7 +362,7 @@ let authenticate_cert tgt =
         let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
         let ip = List.assoc "ip" conf in
         let port = List.assoc "port" conf in
-        with_connection ip (int_of_string port) (sendrequest_plain tgt)
+        with_stunnel ip (int_of_string port) (sendrequest_plain tgt)
     )
 
 

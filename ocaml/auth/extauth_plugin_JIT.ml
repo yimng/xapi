@@ -352,10 +352,11 @@ let sendrequest_plain str s =
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
-				Unixext.really_read_string s (Int64.to_int l)
+				let response = Unixext.really_read_string s (Int64.to_int l) in
+				debug ">>>>>>response:%s<<<<<<<<<<<" response;
+				response
 			| None -> failwith "Need a content length"
 	);
-	debug ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>sendrequest_plain end<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 
 let authenticate_cert tgt = 
 	Server_helpers.exec_with_new_task "authenticate "

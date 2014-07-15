@@ -468,7 +468,7 @@ let on_enable config_params =
 	let ip = List.assoc "ip" config_params in
 	let port = List.assoc "port" config_params in
 	let (ou_conf,ou_params) = if (List.mem_assoc "ou" config_params) then let ou=(List.assoc "ou" config_params) in ([("ou",ou)],["--ou";ou]) else ([],[]) in
-	
+	(*
 	let status = Sys.command ("ping -c 1 "^ ip) in
 	debug "The ping result from %s is: %s" ip (string_of_int status);
 	if status <> 0
@@ -476,6 +476,7 @@ let on_enable config_params =
 		raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC, "The ip is not reachable"))
 	end
 	else
+	*)
 	
 	try
 		let client_sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in

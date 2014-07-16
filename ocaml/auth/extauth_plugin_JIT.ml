@@ -479,7 +479,16 @@ let on_enable config_params =
 		(*let client_sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 		let inet_addr = Unix.inet_addr_of_string ip in
 		Unix.connect client_sock (Unix.ADDR_INET (inet_addr, int_of_string port));*)
-		let result = with_connection ip (int_of_string port) (sendrequest_plain "OriginalService") in
+		let str = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
+					  "<message>\r\n"^
+					  "<head>\r\n"^
+					  "<version>1.0</version>\r\r"^
+					  "<serviceType>%s</serviceType>\r\n"^
+					  "</head>\r\n"^
+					  "<appId>%s</appId>\r\n"^
+					  "</body>\r\n"^
+					  "</message>\r\n" "vGate" "OriginalService" in
+		let result = with_connection ip (int_of_string port) (sendrequest_plain str) in
 		debug ">>>>>>>>>>>>>>>>>>>>>result: %s<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" result;
 		let extauthconf = [
 			("ip", ip);

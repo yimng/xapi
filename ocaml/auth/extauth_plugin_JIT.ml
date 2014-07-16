@@ -367,7 +367,7 @@ let authenticate_cert tgt =
 
 
 let authenticate_username_password _username password = 
-	authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
+	(*authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
 					  "<message>\r\n"^
 					  "<head>\r\n"^
 					  "<version>1.0</version>\r\r"^
@@ -376,6 +376,29 @@ let authenticate_username_password _username password =
 					  "<appId>testId</appId>\r\n"^
 					  "</body>\r\n"^
 					  "</message>\r\n"
+	*)
+	Server_helpers.exec_with_new_task "authenticate "
+    (fun __context ->
+		let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
+        let host = Helpers.get_localhost ~__context in
+        let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
+        let ip = List.assoc "ip" conf in
+        let port = List.assoc "port" conf in
+		let open Xmlrpc_client in
+		let transport = TCP(ip, int_of_string port) in
+		let request = Xapi_http.http_request ~keep_alive:false ~body ~headers:["Host", ip]
+			Http.Post "/MessageService" in
+		with_transport transport 
+			(with_http request
+				(fun (response s) ->
+					match response.Http.Response.content_length with
+						| Some l ->
+							Unixext.really_read_string s (Int64.to_int l)
+						| None -> failwith "Need a content length"
+				)
+			)
+		
+    )
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 

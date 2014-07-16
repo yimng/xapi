@@ -347,11 +347,11 @@ let with_stunnel ip port =
 
 
 let sendrequest_plain str s =
-	Http_client.rpc s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~auth:(Http.Basic("", "")) ~body:str Http.Post "/MessageService")
+	Http_client.rpc s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~body:str Http.Post "/MessageService")
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
-				Unixext.really_read_string s (Int64.to_int l) in
+				Unixext.really_read_string s (Int64.to_int l)
 			| None -> failwith "Need a content length"
 	)
 
@@ -362,7 +362,7 @@ let authenticate_cert tgt =
         let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
         let ip = List.assoc "ip" conf in
         let port = List.assoc "port" conf in
-        with_stunnel ip (int_of_string port) (sendrequest_plain tgt)
+        with_connection ip (int_of_string port) (sendrequest_plain tgt)
     )
 
 

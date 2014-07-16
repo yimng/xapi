@@ -476,9 +476,10 @@ let on_enable config_params =
 	*)
 	
 	try
-		let client_sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+		(*let client_sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 		let inet_addr = Unix.inet_addr_of_string ip in
-		Unix.connect client_sock (Unix.ADDR_INET (inet_addr, int_of_string port));
+		Unix.connect client_sock (Unix.ADDR_INET (inet_addr, int_of_string port));*)
+		with_connection ip (int_of_string port) (sendrequest_plain "OriginalService")
 		let extauthconf = [
 			("ip", ip);
 			("port", port)

@@ -385,8 +385,11 @@ let authenticate_username_password _username password =
         let ip = List.assoc "ip" conf in
         let port = List.assoc "port" conf in
 		let open Xmlrpc_client in
-		let url = Http.Url.of_string Printf.sprintf "http://%s:%s/MessageService" ip port in
+		(**
+		let url = Http.Url.of_string (Printf.sprintf "http://%s:%s/MessageService" ip port) in
 		let transport = Xmlrpc_client.transport_of_url url in
+		*)
+		let transport = SSL(SSL.make (), ip, int_of_string port) in
 		let request = Http.Request.make ~user_agent:"xapi" ~keep_alive:false ~body ~headers:["Host", ip] ~content_type:"application/xml" ~host:ip
 			Http.Post "/MessageService" in
 		with_transport transport 

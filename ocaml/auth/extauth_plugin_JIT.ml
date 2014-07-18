@@ -385,12 +385,13 @@ let authenticate_username_password _username password =
         let ip = List.assoc "ip" conf in
         let port = List.assoc "port" conf in
 		let open Xmlrpc_client in
-		let transport = TCP(ip, int_of_string port) in
-		let request = Xapi_http.http_request ~keep_alive:false ~body ~headers:["Host", ip]
+		let url = Http.Url.of_string Printf.sprintf "http://%s:%s/MessageService" ip port in
+		let transport = Xmlrpc_client.transport_of_url url in
+		let request = Http.Request.make ~user_agent:"xapi" ~keep_alive:false ~body ~headers:["Host", ip] ~content_type:"application/xml" ~host:ip
 			Http.Post "/MessageService" in
 		with_transport transport 
 			(with_http request
-				(fun (response s) ->
+				(fun (response, s) ->
 					match response.Http.Response.content_length with
 						| Some l ->
 							Unixext.really_read_string s (Int64.to_int l)
@@ -502,9 +503,6 @@ let on_enable config_params =
 		(*let client_sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 		let inet_addr = Unix.inet_addr_of_string ip in
 		Unix.connect client_sock (Unix.ADDR_INET (inet_addr, int_of_string port));*)
-		let str = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
-		let result = with_connection ip (int_of_string port) (sendrequest_plain str) in
-		debug ">>>>>>>>>>>>>>>>>>>>>result: %s<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" result;
 		let extauthconf = [
 			("ip", ip);
 			("port", port)

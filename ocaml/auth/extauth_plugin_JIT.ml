@@ -307,17 +307,6 @@ let get_subject_identifier _subject_name =
 	"JIT/" ^ _subject_name
 
 	
-(* subject_id Authenticate_username_password(string username, string password)
-
-	Takes a username and password, and tries to authenticate against an already configured 
-	auth service (see XenAPI requirements Wiki page for details of how auth service configuration 
-	takes place and the appropriate vlaues are stored within the XenServer Metadata). 
-	If authentication is successful then a subject_id is returned representing the account 
-	corresponding to the supplied credentials (where the subject_id is in a namespace managed by 
-	the auth module/service itself -- e.g. maybe a SID or something in the AD case). 
-	Raises auth_failure if authentication is not successful
-*)
-
 (* subject_id Authenticate_ticket(string ticket)
 
 	As above but uses a ticket as credentials (i.e. for single sign-on)
@@ -377,7 +366,7 @@ let authenticate_username_password _username password =
 					  "</body>\r\n"^
 					  "</message>\r\n"
 	*)
-	Server_helpers.exec_with_new_task "authenticate "
+	(**Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
 		let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
         let host = Helpers.get_localhost ~__context in
@@ -386,7 +375,7 @@ let authenticate_username_password _username password =
         let port = List.assoc "port" conf in
 		let open Xmlrpc_client in
 		(**
-		let url = Http.Url.of_string (Printf.sprintf "http://%s:%s/MessageService" ip port) in
+		let url = Http.Url.of_string (Printf.sprintf "http://%s:%s" ip port) in
 		let transport = Xmlrpc_client.transport_of_url url in
 		*)
 		let transport = SSL(SSL.make (), ip, int_of_string port) in
@@ -403,6 +392,20 @@ let authenticate_username_password _username password =
 			)
 		
     )
+	*)
+	Server_helpers.exec_with_new_task "authenticate "
+    (fun __context ->
+		let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
+        let host = Helpers.get_localhost ~__context in
+        let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
+        let ip = List.assoc "ip" conf in
+        let port = List.assoc "port" conf in
+		open Http_client
+		let m = new post_raw (Printf.sprintf "http://%s:%s/MessageService" ip port) body in 
+		m # get_resp_body()
+		
+    )
+	
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
 

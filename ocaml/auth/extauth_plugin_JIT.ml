@@ -26,6 +26,7 @@ struct
  * using JIT cert as a backend
  *
 *)
+exception Parse_cert_xml of string
 
 (** has_substr str sub returns true if sub is a substring of str. Simple, naive, slow. *)
 let has_substr str sub =
@@ -38,281 +39,36 @@ let has_substr str sub =
       !result
     end
 
-let user_friendly_error_msg = "The Active Directory Plug-in could not complete the command. Additional information in the XenServer log."
-
 open Pervasiveext
 
-
-let likewise_common ?stdin_string:(stdin_string="") params_list likewise_cmd =
-
-	(* SECURITY: params_list is untrusted external data. Therefore, we must be careful against *)
-	(* the user sending arbitrary injection commands by escaping the likewise cmd parameters. *)
-	(* In order to avoid any escaping or injection exploiting the shell, we call Unix.execvp directly (via create_process, see unix.ml), *)
-	(* instead of using the shell to interpret the parameters and execute the likewise cmd. *)
-	
-	let debug_cmd = (likewise_cmd^" "^(List.fold_right (fun p pp->"\""^p^"\" "^pp) params_list "")) in
-
-	(* stuff to clean up on the way out of the function: *)
-	let fds_to_close = ref [] in
-	let files_to_unlink = ref [] in
-	(* take care to close an fd only once *)
-	let close_fd fd = 
-	  if List.mem fd !fds_to_close then begin
-	    Unix.close fd;
-	    fds_to_close := List.filter (fun x -> x <> fd) !fds_to_close
-	  end in
-	(* take care to unlink a file only once *)
-	let unlink_file filename = 
-	  if List.mem filename !files_to_unlink then begin
-	    Unix.unlink filename;
-	    files_to_unlink := List.filter (fun x -> x <> filename) !files_to_unlink
-	  end in
-	(* guarantee to release all resources (files, fds) *)
-	let finalize () = 
-	  List.iter close_fd !fds_to_close;
-	  List.iter unlink_file !files_to_unlink in
-	let finally_finalize f = finally f finalize in
-	finally_finalize 
-	  (fun () ->
-	(* creates pipes between xapi and likewise process *)
-	let (in_readme, in_writeme) = Unix.pipe () in
-	fds_to_close := in_readme :: in_writeme :: !fds_to_close;
-	let out_tmpfile = Filename.temp_file "lw" ".out" in
-	files_to_unlink := out_tmpfile :: !files_to_unlink;
-	let err_tmpfile = Filename.temp_file "lw" ".err" in
-	files_to_unlink := err_tmpfile :: !files_to_unlink;
-	let out_writeme = Unix.openfile out_tmpfile [ Unix.O_WRONLY] 0o0 in
-	fds_to_close := out_writeme :: !fds_to_close;
-	let err_writeme = Unix.openfile err_tmpfile [ Unix.O_WRONLY] 0o0 in
-	fds_to_close := err_writeme :: !fds_to_close;
-
-	let pid = Forkhelpers.safe_close_and_exec (Some in_readme) (Some out_writeme) (Some err_writeme) [] likewise_cmd params_list in
-
-	finally
-	  (fun () ->
-	        debug "Created process pid %s for cmd %s" (Forkhelpers.string_of_pidty pid) debug_cmd;
-	  	(* Insert this delay to reproduce the cannot write to stdin bug: 
-		   Thread.delay 5.; *)
-	   	(* WARNING: we don't close the in_readme because otherwise in the case where the likewise 
-		   binary doesn't expect any input there is a race between it finishing (and closing the last
-		   reference to the in_readme) and us attempting to write to in_writeme. If likewise wins the
-		   race then our write will fail with EPIPE (Unix.error 31 in ocamlese). If we keep a reference
-		   to in_readme then our write of "\n" will succeed.
-
-		   An alternative fix would be to not write anything when stdin_string = "" *)
-
-		(* push stdin_string to recently created process' STDIN *)
-		begin 
-		(* usually, STDIN contains some sensitive data such as passwords that we do not want showing up in ps *)
-		(* or in the debug log via debug_cmd *)
-		try
-			let stdin_string = stdin_string ^ "\n" in (*HACK:without \n, the likewise scripts don't return!*)
-			let (_: int) = Unix.write in_writeme stdin_string 0 (String.length stdin_string) in
-			close_fd in_writeme; (* we need to close stdin, otherwise the unix cmd waits forever *)
-		with e -> begin
-			(* in_string is usually the password or other sensitive param, so never write it to debug or exn *)
-			debug "Error writing to stdin for cmd %s: %s" debug_cmd (ExnHelper.string_of_exn e);
-			raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,ExnHelper.string_of_exn e))
-		end
-		end;
-	  )
-	  (fun () -> Forkhelpers.waitpid pid);
-
-	(* <-- at this point the process has quit and left us its output in temporary files *)
-
-	(* we parse the likewise cmd's STDOUT *)
-	let result =
-	try 
-		(* we read STDERR, just for completeness, but do not expect anything here *)
-		(try
-			let err_readme = Unix.openfile err_tmpfile [ Unix.O_RDONLY ] 0o0 in
-			fds_to_close := err_readme :: !fds_to_close;
-
-			let err_readme_c = (Unix.in_channel_of_descr err_readme) in
-			let err_result = Parse_likewise.of_channel err_readme_c in
-			(* parse_likewise will raise a parse_failure exception here if something unusual is returned in STDERR *)
-			(* parse_likewise will raise an End_of_file exception here if nothing is returned in STDERR *)
-			
-			(* we should never reach this point. *)
-			let msg = 
-				(Printf.sprintf "Likewise returned success/failure in STDERR for cmd %s: %s" debug_cmd
-					(match err_result with 
-						| Parse_likewise.Success ls-> "SUCCESS"^(List.fold_left (fun a b -> " "^a^" "^b) "" (List.map (fun (k,v)->k^"="^v) ls))
-						| Parse_likewise.Failure (code,err)-> Printf.sprintf "FAILURE %i: %s" code err
-					)
-				)
-			in
-			debug "%s" msg;
-			raise (Parse_likewise.Parse_failure (msg,"IN STDERR"))
-		with
-			| End_of_file ->  () (* OK, we expect no STDERR output, therefore an EOF is expected *)
-			| e -> (* unexpected error returned by likewise when reading STDERR *)
-				begin
-					debug "Likewise returned an error in STDERR: %s" (ExnHelper.string_of_exn e);
-					raise e (* this should be caught by the parse_failure/unknown_error handlers below *)
-				end
-		);
-		(* we read STDOUT *)
-		let out_readme = Unix.openfile out_tmpfile [ Unix.O_RDONLY ] 0o0 in
-		fds_to_close := out_readme :: !fds_to_close;
-
-		let out_readme_c = (Unix.in_channel_of_descr out_readme) in
-		let out_list = Parse_likewise.of_channel out_readme_c in
-		out_list
-	with 
-		| Parse_likewise.Parse_failure (param,err) ->
-			let msg = (Printf.sprintf "Parse_likewise failure for returned value %s: %s" param err) in
-			debug "Error likewise for cmd %s: %s" debug_cmd msg;
-			(* CA-27772: return user-friendly error messages when Likewise crashes *)
-			let msg = user_friendly_error_msg in
-			raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,msg))
-		| e -> (* unknown error *)
-		begin
-			debug "Parse_likewise error for cmd %s: %s" debug_cmd (ExnHelper.string_of_exn e);
-			(* CA-27772: return user-friendly error messages when Likewise crashes *)
-			let msg = user_friendly_error_msg in
-			raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,msg (*(ExnHelper.string_of_exn e)*)))
-		end
-	in
-
-
-	(* finally, we analyze the results *)
-	begin
-	match result with
-		| Parse_likewise.Success attrs ->
-			attrs (* OK, return the whole output list *)
-		| Parse_likewise.Failure (code,errmsg) -> begin
-			debug "Likewise raised an error for cmd %s: (%i) %s" debug_cmd code errmsg;
-			match code with
-				| 40008    (* no such user *)
-				| 40012    (* no such group *)
-				| 40071    (* no such user, group or domain object *)
-					-> raise Not_found (*Subject_cannot_be_resolved*)
-
-				| 40047    (* empty password, The call to kerberos 5 failed *)
-				| 40022    (* The password is incorrect for the given username *)
-				| 40056    (* The user account is disabled *)
-				| 40017    (* The authentication request could not be handled *)
-					-> raise (Auth_signature.Auth_failure errmsg)
-
-				| 524334
-					-> raise (Auth_signature.Auth_service_error (Auth_signature.E_INVALID_OU,errmsg))
-				| 524326    (* error joining AD domain *)
-				| 524359 -> (* error joining AD domain *)
-					raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,errmsg))
-
-				| 40118 (* lsass server not responding *)
-				| _ ->  (* general Likewise error *)
-					raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,(Printf.sprintf "(%i) %s" code errmsg)))
-		end
-	end	  
-)
-
-let get_joined_domain_name () =
-	Server_helpers.exec_with_new_task "obtaining joined-domain name"
-		(fun __context -> 
-			let host = Helpers.get_localhost ~__context in
-			(* the service_name always contains the domain name provided during domain-join *)
-			Db.Host.get_external_auth_service_name ~__context ~self:host;
-		)
-
-(* CP-842: when resolving AD usernames, make joined-domain prefix optional *)
-let get_full_subject_name ?(use_nt_format=true) subject_name = (* CA-27744: always use NT-style names by default *)
-	try
-		(* tests if the UPN account name separator @ is present in subject name *)
-		ignore(String.index subject_name '@'); 
-		(* we only reach this point if the separator @ is present in subject_name *)
-		(* nothing to do, we assume that subject_name already contains the domain name after @ *)
-		subject_name
-	with Not_found -> begin (* if no UPN username separator @ was found *)
-		try
-			(* tests if the NT account name separator \ is present in subject name *)
-			ignore(String.index subject_name '\\');
-			(* we only reach this point if the separator \ is present in subject_name *)
-			(* nothing to do, we assume that subject_name already contains the domain name before \ *)
-			subject_name
-		with Not_found -> begin (* if neither the UPN separator @ nor the NT username separator \ was found *)
-			if use_nt_format then begin (* the default: NT names is unique, whereas UPN ones are not (CA-27744) *)
-			(* we prepend the joined-domain name to the subjectname as an NT name: <domain.com>\<subjectname> *) 
-			(get_joined_domain_name ()) ^ "\\" ^ subject_name
-			(* obs: (1) likewise accepts a fully qualified domain name <domain.com> with both formats and *)
-			(*      (2) some likewise commands accept only the NT-format, such as lw-find-group-by-name *)
-			end 
-			else begin (* UPN format not the default format (CA-27744) *)
-			(* we append the joined-domain name to the subjectname as a UPN name: <subjectname>@<domain.com> *) 
-			subject_name ^"@"^(get_joined_domain_name ())
-			end
-		end
-	end
-
-(* Converts from UPN format (user@domain.com) to legacy NT format (domain.com\user) *)
-(* This function is a workaround to use lw-find-group-by-name, which requires nt-format names) *)
-(* For anything else, use the original UPN name *)
-let convert_upn_to_nt_username subject_name =
-	try
-		(* test if the UPN account name separator @ is present in subject name *)
-		let i = String.index subject_name '@' in 
-		(* we only reach this point if the separator @ is present in subject_name *)
-		(* when @ is present, we need to convert the UPN name to NT format *)
-		let user = String.sub subject_name 0 i in
-		let domain = String.sub subject_name (i+1) ((String.length subject_name) - i - 1) in
-		domain ^ "\\" ^ user
-	with Not_found -> begin (* if no UPN username separator @ was found *)
-		(* nothing to do in this case *)
-		subject_name
-	end
-
-let likewise_get_all_byid subject_id =
-
-	let subject_attrs = likewise_common ["--minimal";subject_id] "/opt/likewise/bin/lw-find-by-sid" in
-	subject_attrs (* OK, return the whole output list *)
-
-let likewise_get_group_sids_byname _subject_name =
-	let subject_name = get_full_subject_name _subject_name in (* append domain if necessary *)
-
-	let subject_attrs = likewise_common ["--minimal";subject_name] "/opt/likewise/bin/lw-list-groups" in
-	(* returns all sids in the result *)
-	List.map (fun (n,v)->v) (List.filter (fun (n,v)->n="Sid") subject_attrs)
-
-let likewise_get_sid_bygid gid =
-	
-	let subject_attrs = likewise_common ["--minimal";gid] "/opt/likewise/bin/lw-find-group-by-id" in
-	(* lw-find-group-by-id returns several lines. We only need the SID *)
-	if List.mem_assoc "SID" subject_attrs then List.assoc "SID" subject_attrs (* OK, return SID *)
-	else begin (*no SID value returned*)
-		(* this should not have happend, likewise didn't return an SID field!! *)
-		let msg = (Printf.sprintf "Likewise didn't return an SID field for gid %s" gid) in
-		debug "Error likewise_get_sid_bygid for gid %s: %s" gid msg;
-		raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,msg)) (* general Likewise error *)
-	end
-
-let likewise_get_sid_byname _subject_name cmd = 
-	let subject_name = get_full_subject_name _subject_name in (* append domain if necessary *)
-
-	let subject_attrs = likewise_common ["--minimal";subject_name] cmd in
-	(* lw-find-user-by-name returns several lines. We ony need the SID *)
-	if List.mem_assoc "SID" subject_attrs then List.assoc "SID" subject_attrs (* OK, return SID *)
-	else begin (*no SID value returned*)
-		(* this should not have happend, likewise didn't return an SID field!! *)
-		let msg = (Printf.sprintf "Likewise didn't return an SID field for user %s" subject_name) in
-		debug "Error likewise_get_sid_byname for subject name %s: %s" subject_name msg;
-		raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,msg)) (* general Likewise error *)
-	end
-
-(* subject_id get_subject_identifier(string subject_name)
-
-	Takes a subject_name (as may be entered into the XenCenter UI when defining subjects -- 
-*)
 let get_subject_identifier _subject_name = 
 	"JIT/" ^ _subject_name
-
 	
-(* subject_id Authenticate_ticket(string ticket)
-
-	As above but uses a ticket as credentials (i.e. for single sign-on)
-*)
-	(* not implemented now, not needed for our tests, only for a *)
-	(* future single sign-on feature *)
+let parse_cert_result = function
+	| Element ("message", _, [Element ("head", _, headchildren); Element ("body", _, bodychildren)] ) ->
+		let rec get_messagestate = function
+			| Element ("messageState", _, (PCData head)::_) :: tail -> head
+			| _::tail -> get_messagestate tail
+			| [] -> raise (Parse_cert_xml "The cert return xml head is empty")
+		in
+		let messagestate = get_messagestate headchildren in
+		let process_body = function
+			| Element ("authResultSet", _, _)::Element ("accessControlResult", _, (PCData accesscontrolresult))::Element ("attributes", _, attrs) ->
+				let find_attr name = function
+					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)) :: tail -> if value = name then head else find_attr name tail
+					| _ raise (Parse_cert_xml "The cert return xml attr is empty")
+				in 
+				let privilege = find_attr "privilege" attrs in
+				let role = find_attr "role" attrs in
+				[accesscontrolereulst; privilege; role]
+			| _ ->
+				raise (Parse_cer_xml "Bad body xml")
+		in
+		let body = process_body bodychildren in
+		messagestate::body
+				
+	| _ -> raise (Parse_cert_xml "Bad cert xml")
+		
 let authenticate_ticket tgt = 
 	failwith "extauth_plugin authenticate_ticket not implemented"
 	 
@@ -322,8 +78,7 @@ let with_connection ip port f =
 	let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 	Unix.connect s addr;
 	Unixext.set_tcp_nodelay s true;
-	finally
-		(fun () -> f s)
+	finally (fun () -> f s)
 		(fun () -> Unix.close s)
 
 let with_stunnel ip port =
@@ -336,7 +91,7 @@ let with_stunnel ip port =
 
 
 let sendrequest_plain str s =
-	Http_client.rpc ~use_fastpath:true s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~body:str Http.Post "/MessageService")
+	Http_client.rpc s (Http.Request.make ~frame:false ~version:"1.1" ~keep_alive:false ~user_agent:"test_agent" ~body:str Http.Post "/MessageService")
 	(fun response s ->
 		match response.Http.Response.content_length with
 			| Some l ->
@@ -347,28 +102,21 @@ let sendrequest_plain str s =
 let authenticate_cert tgt = 
 	Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
-        let host = Helpers.get_localhost ~__context in
-        let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
-        let ip = List.assoc "ip" conf in
-        let port = List.assoc "port" conf in
-        with_connection ip (int_of_string port) (sendrequest_plain tgt)
+		let host = Helpers.get_localhost ~__context in
+		let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
+		let ip = List.assoc "ip" conf in
+		let port = List.assoc "port" conf in
+		let cert_result = with_stunnel ip (int_of_string port) (sendrequest_plain tgt) in
+		let open Xml in
+		let cert_xml = Xml.parse_string cert_result in
+		parse_cert_result cert_xml
     )
 
 
 let authenticate_username_password _username password = 
-	(*authenticate_cert "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" ^
-					  "<message>\r\n"^
-					  "<head>\r\n"^
-					  "<version>1.0</version>\r\r"^
-					  "<serviceType>OriginalService</serviceType>\r\n"^
-					  "</head>\r\n"^
-					  "<appId>testId</appId>\r\n"^
-					  "</body>\r\n"^
-					  "</message>\r\n"
-	*)
-	(**Server_helpers.exec_with_new_task "authenticate "
+	Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
-		let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
+		let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
         let host = Helpers.get_localhost ~__context in
         let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
         let ip = List.assoc "ip" conf in
@@ -392,7 +140,7 @@ let authenticate_username_password _username password =
 			)
 		
     )
-	*)
+	(**  This is use thirdparty netclient
 	Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
 		let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
@@ -400,11 +148,12 @@ let authenticate_username_password _username password =
         let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
         let ip = List.assoc "ip" conf in
         let port = List.assoc "port" conf in
-		open Http_client
+		let open Http_client in
 		let m = new post_raw (Printf.sprintf "http://%s:%s/MessageService" ip port) body in 
 		m # get_resp_body()
 		
     )
+	*)
 	
 
 (* ((string*string) list) query_subject_information(string subject_identifier)
@@ -433,40 +182,7 @@ let query_subject_information subject_identifier =
 	supports nested groups (as AD does for example)
 *)
 let query_group_membership subject_identifier = 
-
-	let subject_info = query_subject_information subject_identifier in
-	
-	if (List.assoc "subject-is-group" subject_info)="true" (* this field is always present *)
-	then (* subject is a group, so get_group_sids_byname will not work because likewise's lw-list-groups *)
-	     (* doesnt work if a group name is given as input *)
-	     (* FIXME: default action for groups until workaround is found: return an empty list of membership groups *)
-		[]
-	else (* subject is a user, lw-list-groups and therefore get_group_sids_byname work fine *)
-	let subject_name = List.assoc "subject-name" subject_info in (* CA-27744: always use NT-style names *)
-
-	let subject_sid_membership_list = likewise_get_group_sids_byname subject_name in
-	debug "Resolved %i group sids for subject %s (%s): %s"
-		(List.length subject_sid_membership_list)
-		subject_name
-		subject_identifier
-		(List.fold_left (fun p pp->if p="" then pp else p^","^pp) "" subject_sid_membership_list);
-	subject_sid_membership_list
-
-(* converts from domain.com\user to user@domain.com, in case domain.com is present in the subject_name *)
-let convert_nt_to_upn_username subject_name =
-	try
-		(* test if the NT account name separator \ is present in subject name *)
-		let i = String.index subject_name '\\' in 
-		(* we only reach this point if the separator \ is present in subject_name *)
-		(* when \ is present, we need to convert the NT name to UPN format *)
-		let domain = String.sub subject_name 0 i in
-		let user = String.sub subject_name (i+1) ((String.length subject_name) - i - 1) in
-		user ^ "@" ^ domain
-		
-	with Not_found -> begin (* if no NT username separator \ was found *)
-		(* nothing to do in this case *)
-		subject_name
-	end
+	failwith "query_group_membership is not implement"
 
 (* unit on_enable(((string*string) list) config_params)
 

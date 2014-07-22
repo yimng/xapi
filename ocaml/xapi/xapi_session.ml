@@ -38,6 +38,9 @@ let wipe_params_after_fn params fn =
 let do_external_auth uname pwd = 
   Mutex.execute serialize_auth (fun () -> (Ext_auth.d()).authenticate_username_password uname pwd)
 
+let do_external_auth_cert cert = 
+  Mutex.execute serialize_auth (fun () -> (Ext_auth.d()).authenticate_cert cert)
+
 let do_local_auth uname pwd =
   Mutex.execute serialize_auth (fun () -> Pam.authenticate uname pwd)
 

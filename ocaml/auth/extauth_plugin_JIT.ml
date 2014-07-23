@@ -110,10 +110,14 @@ let authenticate_cert cert =
 		let port = List.assoc "port" conf in
 		let http_post = Filename.concat Fhs.libexecdir "http_post" in
 		let url = Printf.sprintf "http://%s:%s/MessageService" ip port in
-		try
-			let output, stderr = Forkhelpers.execute_command_get_output http_post [url, cert] in
-			debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr)
-		with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);)
+		let output =
+			(try
+				let output, stderr = Forkhelpers.execute_command_get_output http_post [url; cert] in
+				debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr);
+				output
+			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);)
+			);
+		in
 		let cert_xml = Xml.parse_string output in
 		parse_cert_result cert_xml
     )
@@ -221,7 +225,7 @@ let query_group_membership subject_identifier =
 *)
 let on_enable config_params =
 
-	let body = Printf.sprintf ""<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
+	let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
 	let r = authenticate_cert body in
 	List.iter (fun x -> debug "=======>>>%s<<<========" x) r; 
 

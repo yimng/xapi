@@ -115,7 +115,7 @@ let authenticate_cert cert =
 				let output, stderr = Forkhelpers.execute_command_get_output http_post [url; cert] in
 				debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr);
 				output
-			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);)
+			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);"")
 			);
 		in
 		let cert_xml = Xml.parse_string output in
@@ -139,6 +139,12 @@ let authenticate_cert cert =
 
 
 let authenticate_username_password _username password = 
+
+	let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
+	let r = authenticate_cert body in
+	List.iter (fun x -> debug "=======>>>%s<<<========" x) r; 
+
+	(**
 	Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
 		let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
@@ -165,6 +171,9 @@ let authenticate_username_password _username password =
 			)
 		
     )
+	*)
+
+
 	(**  This is use thirdparty netclient
 	Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
@@ -224,10 +233,6 @@ let query_group_membership subject_identifier =
 		does not need long-term.]
 *)
 let on_enable config_params =
-
-	let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
-	let r = authenticate_cert body in
-	List.iter (fun x -> debug "=======>>>%s<<<========" x) r; 
 
 	if not ( (List.mem_assoc "ip" config_params)
 			&& (List.mem_assoc "port" config_params)

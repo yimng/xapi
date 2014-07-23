@@ -15,6 +15,7 @@
  * @group Access Control
  *)
 
+open Xml
 module D = Debug.Debugger(struct let name="extauth_plugin_JIT" end)
 open D
 
@@ -49,20 +50,21 @@ let parse_cert_result = function
 		let rec get_messagestate = function
 			| Element ("messageState", _, (PCData head)::_) :: tail -> head
 			| _::tail -> get_messagestate tail
-			| [] -> raise (Parse_cert_xml "The cert return xml head is empty")
+			| [] -> ""
 		in
 		let messagestate = get_messagestate headchildren in
 		let process_body = function
-			| Element ("authResultSet", _, _)::Element ("accessControlResult", _, (PCData accesscontrolresult))::Element ("attributes", _, attrs) ->
-				let find_attr name = function
-					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)) :: tail -> if value = name then head else find_attr name tail
-					| _ raise (Parse_cert_xml "The cert return xml attr is empty")
+			| Element ("authResultSet", _, _)::Element ("accessControlResult", _, (PCData accesscontrolresult)::_)::Element ("attributes", _, attrs)::_ ->
+				let rec find_attr name = function
+					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)::_) :: tail -> if value = name then head else find_attr name tail
+					| _ -> raise (Parse_cert_xml "The cert return xml attr is empty")
 				in 
 				let privilege = find_attr "privilege" attrs in
 				let role = find_attr "role" attrs in
-				[accesscontrolereulst; privilege; role]
+				[accesscontrolresult; privilege; role]
+			| Element ("original", _, (PCData original)::_)::_ -> [original]
 			| _ ->
-				raise (Parse_cer_xml "Bad body xml")
+				raise (Parse_cert_xml "Bad body xml")
 		in
 		let body = process_body bodychildren in
 		messagestate::body
@@ -99,7 +101,25 @@ let sendrequest_plain str s =
 			| None -> failwith "Need a content length"
 	)
 
-let authenticate_cert tgt = 
+let authenticate_cert cert = 
+	Server_helpers.exec_with_new_task "authenticate "
+    (fun __context ->
+		let host = Helpers.get_localhost ~__context in
+		let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
+		let ip = List.assoc "ip" conf in
+		let port = List.assoc "port" conf in
+		let http_post = Filename.concat Fhs.libexecdir "http_post" in
+		let url = Printf.sprintf "http://%s:%s/MessageService" ip port in
+		try
+			let output, stderr = Forkhelpers.execute_command_get_output http_post [url, cert] in
+			debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr)
+		with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);)
+		let cert_xml = Xml.parse_string output in
+		parse_cert_result cert_xml
+    )
+
+
+	(***
 	Server_helpers.exec_with_new_task "authenticate "
     (fun __context ->
 		let host = Helpers.get_localhost ~__context in
@@ -107,10 +127,11 @@ let authenticate_cert tgt =
 		let ip = List.assoc "ip" conf in
 		let port = List.assoc "port" conf in
 		let cert_result = with_stunnel ip (int_of_string port) (sendrequest_plain tgt) in
-		let open Xml in
 		let cert_xml = Xml.parse_string cert_result in
 		parse_cert_result cert_xml
     )
+
+	*)
 
 
 let authenticate_username_password _username password = 
@@ -199,6 +220,10 @@ let query_group_membership subject_identifier =
 		does not need long-term.]
 *)
 let on_enable config_params =
+
+	let body = Printf.sprintf ""<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
+	let r = authenticate_cert body in
+	List.iter (fun x -> debug "=======>>>%s<<<========" x) r; 
 
 	if not ( (List.mem_assoc "ip" config_params)
 			&& (List.mem_assoc "port" config_params)

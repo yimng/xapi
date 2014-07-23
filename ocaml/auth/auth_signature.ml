@@ -63,7 +63,7 @@ type t =
 	 
 	 As above but uses a cert as credentials
       *)
-      authenticate_cert: string -> string;
+      authenticate_cert: string -> string list;
     
       (* subject_id get_subject_identifier(string subject_name)
      

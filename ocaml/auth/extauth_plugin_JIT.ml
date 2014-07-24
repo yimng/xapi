@@ -43,7 +43,7 @@ let has_substr str sub =
 open Pervasiveext
 
 let get_subject_identifier _subject_name = 
-	"JIT/" ^ _subject_name
+	_subject_name
 	
 let parse_cert_result = function
 	| Element ("message", _, [Element ("head", _, headchildren); Element ("body", _, bodychildren)] ) ->
@@ -53,16 +53,19 @@ let parse_cert_result = function
 			| [] -> ""
 		in
 		let messagestate = get_messagestate headchildren in
+		if messagestate = "true" then
+			raise Parse_cert_xml "authenticate failed"
+		else
 		let process_body = function
-			| Element ("authResultSet", _, _)::Element ("accessControlResult", _, (PCData accesscontrolresult)::_)::Element ("attributes", _, attrs)::_ ->
+			| Element ("authResultSet", _, _)::Element ("accessControlResult", _, _)::Element ("attributes", _, attrs)::_ ->
 				let rec find_attr name = function
-					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)::_) :: tail -> if value = name then head else find_attr name tail
+					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)::_) :: tail -> 
+						let key = String.sub ((String.length value) - (String.length name)) (String.length name) in 
+						if key = name then head else find_attr name tail
 					| _ -> raise (Parse_cert_xml "The cert return xml attr is empty")
 				in 
-				let privilege = find_attr "privilege" attrs in
-				let role = find_attr "role" attrs in
-				[accesscontrolresult; privilege; role]
-			| Element ("original", _, (PCData original)::_)::_ -> [original]
+				let usrname = find_attr attrs "SubjectDN" in
+				[usrname]
 			| _ ->
 				raise (Parse_cert_xml "Bad body xml")
 		in
@@ -70,6 +73,12 @@ let parse_cert_result = function
 		messagestate::body
 				
 	| _ -> raise (Parse_cert_xml "Bad cert xml")
+
+let parse_original_result = function
+	| Element ("message", _, [Element ("head", _, _); Element ("body", _, Element ("original", _, (PCData originalcode)::_) :: _)] ) -> originalcode
+	| Element ("message", _, Element ("head", _, _)::[]) -> raise (Parse_cert_xml "The original code is empty")
+	| _ -> raise (Parse_cert_xml "The original xml is empty") 
+		
 		
 let authenticate_ticket tgt = 
 	failwith "extauth_plugin authenticate_ticket not implemented"
@@ -101,8 +110,8 @@ let sendrequest_plain str s =
 			| None -> failwith "Need a content length"
 	)
 
-let authenticate_cert cert = 
-	Server_helpers.exec_with_new_task "authenticate "
+let http_post string =
+	Server_helpers.exec_with_new_task "http_post"
     (fun __context ->
 		let host = Helpers.get_localhost ~__context in
 		let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
@@ -118,9 +127,11 @@ let authenticate_cert cert =
 			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);"")
 			);
 		in
-		let cert_xml = Xml.parse_string output in
-		parse_cert_result cert_xml
+		Xml.parse_string output
     )
+
+let authenticate_cert cert = 
+	parse_cert_result (http_post cert)
 
 
 	(***
@@ -136,13 +147,19 @@ let authenticate_cert cert =
     )
 
 	*)
+let get_original () =
+	parse_original_result (http_post "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>OriginalService</serviceType></head><body><appId>vGate</appId></body></message>")
+
 
 
 let authenticate_username_password _username password = 
 
-	let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "testApp"  in
+	let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
 	let r = authenticate_cert body in
 	List.iter (fun x -> debug "=======>>>%s<<<========" x) r; 
+	match r with
+		| h::t -> h
+		| [] -> failwith "The result is empty"
 
 	(**
 	Server_helpers.exec_with_new_task "authenticate "
@@ -201,8 +218,7 @@ let authenticate_username_password _username password =
 	Raises Not_found (*Subject_cannot_be_resolved*) if subject_id cannot be resolved by external auth service
 *)
 let query_subject_information subject_identifier = 
-	let subject_name = String.sub subject_identifier 3 ((String.length subject_identifier) - 3) in
-	[	("subject-name", subject_name);
+	[	("subject-name", subject_identifier);
 		("subject-sid", subject_identifier);
 		("subject-is-group", "false");
 	]

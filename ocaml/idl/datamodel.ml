@@ -1187,6 +1187,17 @@ let session_login  = call ~flags:[]
   ~allowed_roles:_R_ALL (*any static role can try to create a user session*)
   ()
 
+let session_get_original  = call ~flags:[]
+  ~name:"get_original"
+  ~in_product_since:rel_rio
+  ~doc:"Attempt to authenticate the user, returning a session reference if successful"
+  ~result:(String ,"newly created originalcode")
+  ~errs:[Api_errors.session_authentication_failed]
+  ~secret:true
+  ~allowed_roles:_R_ALL (*any static role can try to create a user session*)
+  ()
+
+
 let slave_login  = call ~flags:[]
   ~name:"slave_login"
   ~doc:"Attempt to authenticate to the pool master by presenting the slave's host ref and pool secret"

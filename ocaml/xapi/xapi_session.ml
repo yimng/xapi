@@ -576,7 +576,6 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 )
 
 
-
 let login_with_cert ~__context ~cert ~version = 
 	let thread_delay_and_raise_error ?(error=Api_errors.session_authentication_failed) uname msg =
 		let some_seconds = 5.0 in
@@ -592,9 +591,11 @@ let login_with_cert ~__context ~cert ~version =
 		end
 	with (Auth_signature.Auth_failure msg) ->
 		begin
-			thread_delay_and_raise_error uname msg
+			thread_delay_and_raise_error "nouser"  msg
 		end
 	) in	
+	let subject_identifier = uname in
+	let subject_name = uname in
 	if (Context.preauth ~__context) then
 	begin
 		login_no_password ~__context ~uname:(Some uname) ~host:(Helpers.get_localhost ~__context) 
@@ -602,7 +603,6 @@ let login_with_cert ~__context ~cert ~version =
 			~auth_user_sid:"" ~auth_user_name:uname ~rbac_permissions:[]
 	end 
 	else
-
 		begin
 			try
 				let subjects_in_db = Db.Subject.get_all ~__context in

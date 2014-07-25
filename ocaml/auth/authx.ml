@@ -155,6 +155,9 @@ let authenticate_ticket tgt =
 let authenticate_cert cert= 
 	failwith "authx authenticate_cert not implemented"
 
+let get_original ()=
+	failwith "get_original not implemented"
+
 (* ((string*string) list) query_subject_information(string subject_identifier)
 
 	Takes a subject_identifier and returns the user record from the directory service as 

@@ -54,17 +54,17 @@ let parse_cert_result = function
 		in
 		let messagestate = get_messagestate headchildren in
 		if messagestate = "true" then
-			raise Parse_cert_xml "authenticate failed"
+			raise (Parse_cert_xml "authenticate failed")
 		else
 		let process_body = function
 			| Element ("authResultSet", _, _)::Element ("accessControlResult", _, _)::Element ("attributes", _, attrs)::_ ->
 				let rec find_attr name = function
 					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)::_) :: tail -> 
-						let key = String.sub ((String.length value) - (String.length name)) (String.length name) in 
+						let key = String.sub value ((String.length value) - (String.length name)) (String.length name) in 
 						if key = name then head else find_attr name tail
 					| _ -> raise (Parse_cert_xml "The cert return xml attr is empty")
 				in 
-				let usrname = find_attr attrs "SubjectDN" in
+				let usrname = find_attr "SubjectDN" attrs in
 				[usrname]
 			| _ ->
 				raise (Parse_cert_xml "Bad body xml")
@@ -110,7 +110,7 @@ let sendrequest_plain str s =
 			| None -> failwith "Need a content length"
 	)
 
-let http_post string =
+let http_post str =
 	Server_helpers.exec_with_new_task "http_post"
     (fun __context ->
 		let host = Helpers.get_localhost ~__context in
@@ -121,7 +121,7 @@ let http_post string =
 		let url = Printf.sprintf "http://%s:%s/MessageService" ip port in
 		let output =
 			(try
-				let output, stderr = Forkhelpers.execute_command_get_output http_post [url; cert] in
+				let output, stderr = Forkhelpers.execute_command_get_output http_post [url; str] in
 				debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr);
 				output
 			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);"")

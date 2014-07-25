@@ -1187,6 +1187,19 @@ let session_login  = call ~flags:[]
   ~allowed_roles:_R_ALL (*any static role can try to create a user session*)
   ()
 
+let session_login_with_cert  = call ~flags:[]
+  ~name:"login_with_cert"
+  ~in_product_since:rel_rio
+  ~doc:"Attempt to authenticate the user with cert, returning a session reference if successful"
+  ~result:(Ref _session,"reference of newly created session")
+  ~versioned_params:
+   [{param_type=String; param_name="cert"; param_doc="Certifaction for login."; param_release=rio_release; param_default=None};
+   {param_type=String; param_name="version"; param_doc="Client API version."; param_release=miami_release; param_default=Some (VString "1.1")}]
+  ~errs:[Api_errors.session_authentication_failed]
+  ~secret:true
+  ~allowed_roles:_R_ALL (*any static role can try to create a user session*)
+  ()
+
 let session_get_original  = call ~flags:[]
   ~name:"get_original"
   ~in_product_since:rel_rio

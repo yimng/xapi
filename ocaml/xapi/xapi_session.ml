@@ -688,8 +688,6 @@ let login_with_cert ~__context ~cert ~version =
 						debug "(generic) A function failed to catch this exception for user %s from %s during external authentication: %s" uname (Context.get_origin __context) msg;
 						thread_delay_and_raise_error uname msg
 					end
-			end
-				
 		end
 
 

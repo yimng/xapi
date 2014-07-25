@@ -575,6 +575,125 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 	)
 )
 
+
+
+let login_with_cert ~__context ~cert ~version = 
+	let thread_delay_and_raise_error ?(error=Api_errors.session_authentication_failed) uname msg =
+		let some_seconds = 5.0 in
+		Thread.delay some_seconds; (* sleep a bit to avoid someone brute-forcing the password *)
+		if error = Api_errors.session_authentication_failed (*default*)
+		then raise (Api_errors.Server_error (error,[uname;msg]))
+		else raise (Api_errors.Server_error (error,["session.login_with_password";msg]))
+	in
+	let uname = (try
+		begin
+			let auth_result = do_external_auth_cert cert in
+			List.nth auth_result 1
+		end
+	with (Auth_signature.Auth_failure msg) ->
+		begin
+			thread_delay_and_raise_error uname msg
+		end
+	) in	
+	if (Context.preauth ~__context) then
+	begin
+		login_no_password ~__context ~uname:(Some uname) ~host:(Helpers.get_localhost ~__context) 
+			~pool:false ~is_local_superuser:true ~subject:(Ref.null)
+			~auth_user_sid:"" ~auth_user_name:uname ~rbac_permissions:[]
+	end 
+	else
+
+		begin
+			try
+				let subjects_in_db = Db.Subject.get_all ~__context in
+				let subject_ids_in_db = List.map (fun subj -> (subj,(Db.Subject.get_subject_identifier ~__context ~self:subj))) subjects_in_db in
+				let reflexive_membership_closure = uname::[] in
+				let intersect ext_sids db_sids = List.filter (fun (subj,db_sid) -> List.mem db_sid ext_sids) db_sids in
+				let intersection = intersect reflexive_membership_closure subject_ids_in_db in
+				let in_intersection = (List.length intersection > 0) in
+				if not in_intersection then
+				begin (* empty intersection: externally-authenticated subject has no login rights in the pool *)
+					let msg = (Printf.sprintf "Subject %s (identifier %s, from %s) has no access rights in this pool" uname subject_identifier (Context.get_origin __context)) in 
+					info "%s" msg; 
+					thread_delay_and_raise_error uname msg
+				end
+				else
+
+				let subject_membership = (List.map (fun (subj_ref,sid) -> subj_ref) intersection) in
+				debug "subject membership intersection with subject-list=[%s]"
+					(List.fold_left 
+						(fun i (subj_ref,sid)-> 
+							let subj_ref= 
+								try (* attempt to resolve subject_ref -> subject_name *)
+									List.assoc
+										Auth_signature.subject_information_field_subject_name
+										(Db.Subject.get_other_config ~__context ~self:subj_ref)
+								with _ -> Ref.string_of subj_ref
+							in if i="" then subj_ref^" ("^sid^")"
+								else i^","^subj_ref^" ("^sid^")"
+						)
+						""
+						intersection
+				);
+
+				let rbac_permissions = get_permissions ~__context ~subject_membership in
+				if List.length rbac_permissions < 1 then
+					let msg = (Printf.sprintf "Subject %s (identifier %s) has no roles in this pool" uname subject_identifier) in 
+					info "%s" msg; 
+					thread_delay_and_raise_error uname msg ~error:Api_errors.rbac_permission_denied
+				else
+					
+				begin (* non-empty intersection: externally-authenticated subject has login rights in the pool *)
+					let subject = (* return reference for the subject obj in the db *)
+								  (* obs: this obj ref can point to either a user or a group contained in the local subject db list *) 
+						(try 
+							List.find (fun subj -> (* is this the subject ref that returned the non-empty intersection?*)
+								(List.hd intersection) = (subj,(Db.Subject.get_subject_identifier ~__context ~self:subj)) 
+							) subjects_in_db (* goes through exactly the same subject list that we went when computing the intersection, *)
+											 (* so that no one is able to undetectably remove/add another subject with the same subject_identifier *)
+											 (* between that time 2.2 and now 2.3 *)
+						with Not_found -> (* this should never happen, it shows an inconsistency in the db between 2.2 and 2.3 *)
+							begin
+								let msg = (Printf.sprintf "Subject %s (identifier %s, from %s) is not present in this pool" uname subject_identifier (Context.get_origin __context)) in 
+								debug "%s" msg; 
+								thread_delay_and_raise_error uname msg
+							end
+					) in 
+					login_no_password ~__context ~uname:(Some uname) ~host:(Helpers.get_localhost ~__context) 
+						~pool:false ~is_local_superuser:false ~subject:subject ~auth_user_sid:subject_identifier ~auth_user_name:subject_name
+						~rbac_permissions
+				end
+			(* we only reach this point if for some reason a function above forgot to catch a possible exception in the Auth_signature module*)
+			with
+				| Not_found 
+				| Auth_signature.Subject_cannot_be_resolved -> 
+					begin
+						let msg = (Printf.sprintf "user %s from %s not found in external directory" uname (Context.get_origin __context)) in
+						debug "A function failed to catch this exception for user %s during external authentication: %s" uname msg;
+						thread_delay_and_raise_error uname msg
+					end
+				| Auth_signature.Auth_failure msg 
+				| Auth_signature.Auth_service_error (_,msg) ->
+					begin
+						debug "A function failed to catch this exception for user %s from %s during external authentication: %s" uname (Context.get_origin __context) msg;
+						thread_delay_and_raise_error uname msg
+					end
+				| Api_errors.Server_error _ as e -> (* bubble up any api_error already generated *) 
+					begin
+						raise e
+					end
+				| e -> (* generic catch-all for unexpected exceptions during external authentication *)
+					begin
+						let msg = (ExnHelper.string_of_exn e) in
+						debug "(generic) A function failed to catch this exception for user %s from %s during external authentication: %s" uname (Context.get_origin __context) msg;
+						thread_delay_and_raise_error uname msg
+					end
+			end
+				
+		end
+
+
+
 let change_password  ~__context ~old_pwd ~new_pwd = wipe_params_after_fn [old_pwd;new_pwd] (fun () ->
 	let session_id = Context.get_session_id __context in
 	(*let user = Db.Session.get_this_user ~__context ~self:session_id in

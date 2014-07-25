@@ -356,7 +356,7 @@ let slave_local_login_with_password ~__context ~uname ~pwd = wipe_params_after_f
 
 
 let get_original () =
-	Extauth_plugin_JIT.AuthJIT.get_original ()
+	do_external_get_original ()
 
 (* CP-714: Modify session.login_with_password to first try local super-user login; and then call into external auth plugin if this is enabled *)
 (* 1. If the pool master's Host.external_auth_type field is not none, then the Session.login_with_password XenAPI method will:

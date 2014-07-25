@@ -41,6 +41,9 @@ let do_external_auth uname pwd =
 let do_external_auth_cert cert = 
   Mutex.execute serialize_auth (fun () -> (Ext_auth.d()).authenticate_cert cert)
 
+let do_external_get_original () = 
+  Mutex.execute serialize_auth (fun () -> (Ext_auth.d()).get_original ())
+
 let do_local_auth uname pwd =
   Mutex.execute serialize_auth (fun () -> Pam.authenticate uname pwd)
 
@@ -354,7 +357,6 @@ let slave_local_login_with_password ~__context ~uname ~pwd = wipe_params_after_f
 
 let get_original () =
 	Extauth_plugin_JIT.AuthJIT.get_original ()
-
 
 (* CP-714: Modify session.login_with_password to first try local super-user login; and then call into external auth plugin if this is enabled *)
 (* 1. If the pool master's Host.external_auth_type field is not none, then the Session.login_with_password XenAPI method will:

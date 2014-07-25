@@ -341,6 +341,7 @@ let on_xapi_exit () =
 let methods = {Auth_signature.authenticate_username_password = authenticate_username_password;
 	       Auth_signature.authenticate_ticket = authenticate_ticket;
 	       Auth_signature.authenticate_cert = authenticate_cert;
+	       Auth_signature.get_original = get_original;
 	       Auth_signature.get_subject_identifier = get_subject_identifier;
 	       Auth_signature.query_subject_information = query_subject_information;
 	       Auth_signature.query_group_membership = query_group_membership;

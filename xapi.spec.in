@@ -228,6 +228,7 @@ rm -rf $RPM_BUILD_ROOT
 @OPTDIR@/libexec/InterfaceReconfigure.py
 @OPTDIR@/libexec/InterfaceReconfigure.pyo
 @OPTDIR@/libexec/InterfaceReconfigure.pyc
+@OPTDIR@/libexec/http_post
 @OPTDIR@/libexec/InterfaceReconfigureBridge.py
 @OPTDIR@/libexec/InterfaceReconfigureBridge.pyo
 @OPTDIR@/libexec/InterfaceReconfigureBridge.pyc

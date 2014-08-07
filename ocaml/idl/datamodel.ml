@@ -1200,11 +1200,11 @@ let session_login_with_cert  = call ~flags:[]
   ~allowed_roles:_R_ALL (*any static role can try to create a user session*)
   ()
 
-let session_get_original  = call
+let session_get_original  = call ~flags:[]
   ~name:"get_original"
   ~in_product_since:rel_rio
   ~doc:"Attempt to authenticate the user, returning a session reference if successful"
-  ~params:[{param_type=String; param_name="appid"; param_doc="app ID."; param_release=rio_release; param_default=None}]
+  ~params:[String, "appid", "App Id"]
   ~result:(String ,"newly created originalcode")
   ~errs:[Api_errors.session_authentication_failed]
   ~secret:true

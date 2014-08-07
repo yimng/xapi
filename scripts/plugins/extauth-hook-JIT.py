@@ -22,22 +22,22 @@ def log_err(err):
 
 
 def after_extauth_enable(session, args):
-    pass
+	return str(True)
 
 def after_xapi_initialize(session, args):
-    pass
+	return str(True)
 
 def after_subject_add(session, args):
-    pass
+	return str(True)
 
 def after_subject_remove(session, args):
-    pass
+	return str(True)
 
 def after_roles_update(session, args):
-    pass
+	return str(True)
 
 def before_extauth_disable(session, args):
-    pass
+	return str(True)
 
 # The dispatcher
 if __name__ == "__main__":

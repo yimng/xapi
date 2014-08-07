@@ -576,7 +576,34 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 )
 
 
-let login_with_cert ~__context ~cert ~version = 
+let login_with_cert ~__context ~clientip ~appid ~cert ~version = 
+	let xml_cert = Printf.sprintf "<message>
+								   <head>
+								   <version>1.0</version>
+								   <serviceType>AuthenService</serviceType>
+								   </head>
+								   <body>
+								   <clientInfo><clientIP>%s</clientIP><clientInfo>
+								   <appId>%s</appId>
+								   <authen>
+								   <authCredential authMode=\"cert\">
+								   <certInfo>%s</certInfo>
+								   </authCredential>
+								   </authen>
+								   <accessControl>false</accessControl>
+								   <attributes attributeType=\"all\"> 
+								   <attr name=\"X509Certificate.NotBefore\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+								   <attr name=\"X509Certificate.NotAfter\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+								   <attr name=\"X509Certificate.SubjectDN\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+								   <attr name=\"X509Certificate.SerialNumber\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+								   <attr name=\"X509Certificate.IssuerDN\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+								   </attributes>
+								   </body>
+								   </message>"	
+								   clientip
+								   appid
+								   cert
+									
 	let thread_delay_and_raise_error ?(error=Api_errors.session_authentication_failed) uname msg =
 		let some_seconds = 5.0 in
 		Thread.delay some_seconds; (* sleep a bit to avoid someone brute-forcing the password *)
@@ -586,7 +613,7 @@ let login_with_cert ~__context ~cert ~version =
 	in
 	let uname = (try
 		begin
-			let auth_result = do_external_auth_cert cert in
+			let auth_result = do_external_auth_cert xml_cert in
 			List.nth auth_result 1
 		end
 	with (Auth_signature.Auth_failure msg) ->

@@ -1204,6 +1204,7 @@ let session_get_original  = call ~flags:[]
   ~name:"get_original"
   ~in_product_since:rel_rio
   ~doc:"Attempt to authenticate the user, returning a session reference if successful"
+  ~params:[]
   ~result:(String ,"newly created originalcode")
   ~errs:[Api_errors.session_authentication_failed]
   ~secret:true

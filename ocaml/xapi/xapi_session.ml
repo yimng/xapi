@@ -576,15 +576,14 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 )
 
 
-let login_with_cert ~__context ~clientip ~appid ~cert ~version = 
+let login_with_cert ~__context ~cert ~version = 
 	let xml_cert = Printf.sprintf "<message>
 								   <head>
 								   <version>1.0</version>
 								   <serviceType>AuthenService</serviceType>
 								   </head>
 								   <body>
-								   <clientInfo><clientIP>%s</clientIP><clientInfo>
-								   <appId>%s</appId>
+								   <appId>vGate</appId>
 								   <authen>
 								   <authCredential authMode=\"cert\">
 								   <certInfo>%s</certInfo>
@@ -600,9 +599,8 @@ let login_with_cert ~__context ~clientip ~appid ~cert ~version =
 								   </attributes>
 								   </body>
 								   </message>"	
-								   clientip
-								   appid
 								   cert
+		in
 									
 	let thread_delay_and_raise_error ?(error=Api_errors.session_authentication_failed) uname msg =
 		let some_seconds = 5.0 in

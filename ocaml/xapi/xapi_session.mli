@@ -27,7 +27,7 @@ val consider_touching_session: (XMLRPC.xmlrpc -> XMLRPC.xmlrpc) -> API.ref_sessi
 val slave_login: __context:Context.t -> host:[ `host ] Ref.t -> psecret:string -> [ `session ] Ref.t
 val slave_local_login: __context:Context.t -> psecret:string -> API.ref_session
 val slave_local_login_with_password: __context:Context.t -> uname:string -> pwd:string -> API.ref_session
-val get_original: unit -> string
+val get_original: __context:Context.t -> string
 val login_with_password: __context:Context.t ->  uname:string -> pwd:string -> version:'a -> [ `session ] Ref.t
 val login_with_cert: __context:Context.t -> cert:string -> version:'a -> [ `session ] Ref.t
 val change_password: __context:Context.t -> old_pwd:string -> new_pwd:string -> unit

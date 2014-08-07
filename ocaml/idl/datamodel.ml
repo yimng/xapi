@@ -1200,7 +1200,7 @@ let session_login_with_cert  = call ~flags:[]
   ~allowed_roles:_R_ALL (*any static role can try to create a user session*)
   ()
 
-let session_get_original  = call ~flags:[]
+let session_get_original  = call
   ~name:"get_original"
   ~in_product_since:rel_rio
   ~doc:"Attempt to authenticate the user, returning a session reference if successful"
@@ -7912,6 +7912,8 @@ let emergency_calls =
 
 (** Whitelist of calls that will not get forwarded from the slave to master via the unix domain socket *)
 let whitelist = [ (session,session_login); 
+		  (session,session_login_with_cert);
+		  (session,session_get_original);
 		  (session,slave_login); 
 		] @ emergency_calls
 

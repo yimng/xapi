@@ -1204,7 +1204,7 @@ let session_get_original  = call
   ~name:"get_original"
   ~in_product_since:rel_rio
   ~doc:"Attempt to authenticate the user, returning a session reference if successful"
-  ~params:[]
+  ~params:[{param_type=String; param_name="appid"; param_doc="app ID."; param_release=rio_release; param_default=None}]
   ~result:(String ,"newly created originalcode")
   ~errs:[Api_errors.session_authentication_failed]
   ~secret:true

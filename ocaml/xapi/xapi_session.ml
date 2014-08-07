@@ -355,7 +355,7 @@ let slave_local_login_with_password ~__context ~uname ~pwd = wipe_params_after_f
 )
 
 
-let get_original ~__context =
+let get_original ~__context ~appid =
 	do_external_get_original ()
 
 (* CP-714: Modify session.login_with_password to first try local super-user login; and then call into external auth plugin if this is enabled *)

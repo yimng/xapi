@@ -3371,7 +3371,7 @@ let session =
     create_obj ~in_db:true ~in_product_since:rel_rio ~in_oss_since:oss_since_303 ~internal_deprecated_since:None ~persist:PersistNothing ~gen_constructor_destructor:false ~name:_session ~descr:"A session" ~gen_events:false
     ~doccomments:[]
     ~messages_default_allowed_roles:_R_POOL_ADMIN
-    ~messages:[session_login; session_logout; session_chpass;
+    ~messages:[session_login; session_login_with_cert; session_get_original; session_logout; session_chpass;
 	       slave_login; 
 	       slave_local_login; slave_local_login_with_password; local_logout;
 	       session_get_all_subject_identifiers; session_logout_subject_identifier;

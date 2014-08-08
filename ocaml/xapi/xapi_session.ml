@@ -584,11 +584,7 @@ let login_with_cert ~__context ~cert ~version =
 								   </head>
 								   <body>
 								   <appId>vGate</appId>
-								   <authen>
-								   <authCredential authMode=\"cert\">
-								   <certInfo>%s</certInfo>
-								   </authCredential>
-								   </authen>
+								   <authen>%s<authen>
 								   <accessControl>false</accessControl>
 								   <attributes attributeType=\"all\"> 
 								   <attr name=\"X509Certificate.NotBefore\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>

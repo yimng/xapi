@@ -577,8 +577,8 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 
 
 let login_with_cert ~__context ~cert ~version = 
-	let xml_cert = Printf.sprintf "<?xml version='1.0' encoding='UTF-8'?><message><head><version>1.0</version><serviceType>AuthenService</serviceType></head><body></clientInfo><appId>vGate</appId><authen>%s</authen><accessControl>false</accessControl><attributes attributeType='all'><attr name='X509Certificate.NotBefore' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.NotAfter' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.SubjectDN' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.SerialNumber' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.IssuerDN' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='privilege' namespace='http://www.jit.com.cn/pmi/pms/ns/privilege'></attr><attr name='role' namespace='http://www.jit.com.cn/pmi/pms/ns/role'></attr></attributes></body></message>"
-								   cert
+	let xml_cert = Printf.sprintf "<?xml version='1.0' encoding='UTF-8'?><message><head><version>1.0</version><serviceType>AuthenService</serviceType></head><body><appId>vGate</appId><authen>%s</authen><accessControl>false</accessControl><attributes attributeType='all'><attr name='X509Certificate.NotBefore' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.NotAfter' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.SubjectDN' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.SerialNumber' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.IssuerDN' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='privilege' namespace='http://www.jit.com.cn/pmi/pms/ns/privilege'></attr><attr name='role' namespace='http://www.jit.com.cn/pmi/pms/ns/role'></attr></attributes></body></message>"
+		   cert
 		in
 									
 	let thread_delay_and_raise_error ?(error=Api_errors.session_authentication_failed) uname msg =
@@ -591,7 +591,10 @@ let login_with_cert ~__context ~cert ~version =
 	let uname = (try
 		begin
 			let auth_result = do_external_auth_cert xml_cert in
-			List.nth auth_result 1
+			let dn = List.nth auth_result 1 in
+			let cn = List.nth (String.split ',' dn) 2 in
+			let name = List.nth (String.split '=' cn) 1 in
+			name
 		end
 	with (Auth_signature.Auth_failure msg) ->
 		begin

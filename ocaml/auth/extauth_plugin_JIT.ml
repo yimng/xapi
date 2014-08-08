@@ -127,6 +127,7 @@ let http_post str =
 			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);"")
 			);
 		in
+		debug "output>>>>[%s]<<<<<" output;
 		Xml.parse_string output
     )
 

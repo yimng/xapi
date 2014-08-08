@@ -132,6 +132,7 @@ let http_post str =
     )
 
 let authenticate_cert cert = 
+	debug "certificate=======>[%s]" cert;
 	parse_cert_result (http_post cert)
 
 

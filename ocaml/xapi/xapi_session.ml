@@ -578,7 +578,8 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 
 
 let login_with_cert ~__context ~cert ~version = 
-	let xml_cert = Printf.sprintf "<?xml version='1.0' encoding='UTF-8'?><message><head><version>1.0</version><serviceType>AuthenService</serviceType></head><body><appId>vGate</appId><authen>%s</authen><accessControl>false</accessControl><attributes attributeType='all'><attr name='X509Certificate.NotBefore' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.NotAfter' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.SubjectDN' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.SerialNumber' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='X509Certificate.IssuerDN' namespace='http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509'></attr><attr name='privilege' namespace='http://www.jit.com.cn/pmi/pms/ns/privilege'></attr><attr name='role' namespace='http://www.jit.com.cn/pmi/pms/ns/role'></attr></attributes></body></message>"
+	debug "certificate====>>[%s]" cert;
+	let xml_cert = Printf.sprintf "<?xml version='1.0' encoding='UTF-8'?><message><head><version>1.0</version><serviceType>AuthenService</serviceType></head><body><appId>vGate</appId><authen>%s</authen><accessControl>false</accessControl><attributes attributeType='all'></attributes></body></message>"
 		   cert
 		in
 									

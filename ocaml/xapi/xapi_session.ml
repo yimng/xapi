@@ -577,9 +577,10 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 )
 
 
-let login_with_cert ~__context ~cert ~version = 
-	let xml_cert = Printf.sprintf "<?xml version='1.0' encoding='UTF-8'?><message><head><version>1.0</version><serviceType>AuthenService</serviceType></head><body><appId>vGate</appId><authen>%s</authen><accessControl>false</accessControl><attributes attributeType='all'></attributes></body></message>"
+let login_with_cert ~__context ~cert ~original ~version = 
+	let xml_cert = Printf.sprintf "<?xml version='1.0' encoding='UTF-8'?><message><head><version>1.0</version><serviceType>AuthenService</serviceType></head><body><appId>vGate</appId><authen><authCredential authMode=\"cert\"><detach>%s</detach><original>%s</original></authCredentail></authen><accessControl>false</accessControl><attributes attributeType='all'></attributes></body></message>"
 		cert
+		original
 	in
 									
 	let thread_delay_and_raise_error ?(error=Api_errors.session_authentication_failed) uname msg =

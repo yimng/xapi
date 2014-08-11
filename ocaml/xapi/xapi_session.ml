@@ -24,6 +24,7 @@ open Threadext
 open Client
 open Auth_signature
 open Extauth
+open Stringext
 
 let local_superuser = "root"
 

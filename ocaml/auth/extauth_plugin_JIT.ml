@@ -18,6 +18,7 @@
 open Xml
 module D = Debug.Debugger(struct let name="extauth_plugin_JIT" end)
 open D
+open Auth_signature
 
 module AuthJIT : Auth_signature.AUTH_MODULE =
 struct
@@ -54,7 +55,7 @@ let parse_cert_result = function
 		in
 		let messagestate = get_messagestate headchildren in
 		if messagestate = "true" then
-			raise (Parse_cert_xml "authenticate failed")
+			raise (Auth_signature.Auth_failure "Authenticate failed, the messagestate is true")
 		else
 		let process_body = function
 			| Element ("authResultSet", _, _)::Element ("accessControlResult", _, _)::Element ("attributes", _, attrs)::_ ->
@@ -127,7 +128,6 @@ let http_post str =
 			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);"")
 			);
 		in
-		debug "output>>>>[%s]<<<<<" output;
 		Xml.parse_string output
     )
 

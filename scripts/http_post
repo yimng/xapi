@@ -1,12 +1,4 @@
-#!/usr/bin/env python2.6
-import urllib2
-import sys
+#!/bin/sh
 
-def main(url, data):
-	r = urllib2.Request(url, data=data)
-	u = urllib2.urlopen(r)
-	print u.read()
-	return u.read()
+curl -H "Content-type:text/xml" --data-binary "$2" "$1" 2>/dev/null
 
-if __name__ == "__main__":
-	main(sys.argv[1], sys.argv[2]) 

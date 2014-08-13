@@ -58,7 +58,8 @@ let parse_cert_result = function
 			raise (Auth_signature.Auth_failure "Authenticate failed, the messagestate is true")
 		else
 		let process_body = function
-			| Element ("authResultSet", _, _)::Element ("attributes", _, attrs)::_ ->
+			| Element ("authResultSet", _, _)::Element ("attributes", _, attrs)::_
+			| Element ("authResultSet", _, _)::_::Element ("attributes", _, attrs)::_ ->
 				let rec find_attr name = function
 					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)::_) :: tail -> 
 						let key = String.sub value ((String.length value) - (String.length name)) (String.length name) in 

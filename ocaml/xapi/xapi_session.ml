@@ -619,6 +619,7 @@ let login_with_cert ~__context ~cert ~original ~version =
 		begin
 			let auth_result = do_external_auth_cert xml_cert in
 			let subjectdn = List.nth auth_result 1 in
+			debug "auth_result------------->%s" subjectdn;
 			let sli = List.map (fun x -> String.sub x 0 (String.index x '='), String.sub x (String.index x '=' + 1) (String.length x - String.index x '=' - 1)) (String.split ',' subjectdn) in
 			let name = List.assoc "CN" sli in 
 			name

@@ -28,7 +28,6 @@ struct
  * using JIT cert as a backend
  *
 *)
-exception Parse_cert_xml of string
 
 (** has_substr str sub returns true if sub is a substring of str. Simple, naive, slow. *)
 let has_substr str sub =
@@ -64,22 +63,22 @@ let parse_cert_result = function
 					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)::_) :: tail -> 
 						let key = String.sub value ((String.length value) - (String.length name)) (String.length name) in 
 						if key = name then head else find_attr name tail
-					| _ -> raise (Parse_cert_xml "The cert return xml attr is empty")
+					| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml attributes"))
 				in 
 				let usrname = find_attr "SubjectDN" attrs in
 				[usrname]
 			| _ ->
-				raise (Parse_cert_xml "Bad body xml")
+				raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml body"))
 		in
 		let body = process_body bodychildren in
 		messagestate::body
 				
-	| _ -> raise (Parse_cert_xml "Bad cert xml")
+	| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml"))
 
 let parse_original_result = function
 	| Element ("message", _, [Element ("head", _, _); Element ("body", _, Element ("original", _, (PCData originalcode)::_) :: _)] ) -> originalcode
-	| Element ("message", _, Element ("head", _, _)::[]) -> raise (Parse_cert_xml "The original code is empty")
-	| _ -> raise (Parse_cert_xml "The original xml is empty") 
+	| Element ("message", _, Element ("head", _, _)::[]) -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"The original code is empty"))
+	| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the original xml"))
 		
 		
 let authenticate_ticket tgt = 
@@ -126,7 +125,9 @@ let http_post str =
 				let output, stderr = Forkhelpers.execute_command_get_output http_post [url; str] in
 				debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr);
 				output
-			with e-> (debug "exception executing %s: %s" http_post (ExnHelper.string_of_exn e);"")
+			with e-> (
+					  raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,(ExnHelper.string_of_exn e)))
+					 )
 			);
 		in
 		Xml.parse_string output

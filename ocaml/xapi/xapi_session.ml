@@ -613,7 +613,7 @@ let login_with_cert ~__context ~cert ~original ~version =
 		Thread.delay some_seconds; (* sleep a bit to avoid someone brute-forcing the password *)
 		if error = Api_errors.session_authentication_failed (*default*)
 		then raise (Api_errors.Server_error (error,[uname;msg]))
-		else raise (Api_errors.Server_error (error,["session.login_with_password";msg]))
+		else raise (Api_errors.Server_error (error,["session.login_with_cert";msg]))
 	in
 	let uname = (try
 		begin

@@ -120,6 +120,7 @@ let http_post str =
 		let port = List.assoc "port" conf in
 		(ip,port)
     )
+	in
 	let http_post = Filename.concat Fhs.libexecdir "http_post" in
 	let url = Printf.sprintf "http://%s:%s/MessageService" ip port in
 	let output =
@@ -152,18 +153,26 @@ let authenticate_cert cert =
 
 	*)
 let get_original () =
-	parse_original_result (http_post "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>OriginalService</serviceType></head><body><appId>vGate</appId></body></message>")
+	parse_original_result (http_post 
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<message>
+	<head>
+		<version>1.0</version>
+		<serviceType>
+			OriginalService
+		</serviceType>
+	</head>
+	<body>
+		<appId>
+			vGate
+		</appId>
+	</body>
+</message>")
 
 
 
 let authenticate_username_password _username password = 
-
-	let body = Printf.sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?><message><head><version>1.0</version><serviceType>%s</serviceType></head><body><appId>%s</appId></body></message>" "OriginalService" "vGate"  in
-	let r = authenticate_cert body in
-	List.iter (fun x -> debug "=======>>>%s<<<========" x) r; 
-	match r with
-		| h::t -> h
-		| [] -> failwith "The result is empty"
+	failwith "authenticate_username_password is not implement"
 
 	(**
 	Server_helpers.exec_with_new_task "authenticate "

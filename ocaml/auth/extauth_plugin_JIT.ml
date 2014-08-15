@@ -112,26 +112,27 @@ let sendrequest_plain str s =
 	)
 
 let http_post str =
-	Server_helpers.exec_with_new_task "http_post"
+	let ip, port = Server_helpers.exec_with_new_task "obtain the ip and port of authenticate gateway"
     (fun __context ->
 		let host = Helpers.get_localhost ~__context in
 		let conf = Db.Host.get_external_auth_configuration ~__context ~self:host in
 		let ip = List.assoc "ip" conf in
 		let port = List.assoc "port" conf in
-		let http_post = Filename.concat Fhs.libexecdir "http_post" in
-		let url = Printf.sprintf "http://%s:%s/MessageService" ip port in
-		let output =
-			(try
-				let output, stderr = Forkhelpers.execute_command_get_output http_post [url; str] in
-				debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr);
-				output
-			with e-> (
-					  raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,(ExnHelper.string_of_exn e)))
-					 )
-			);
-		in
-		Xml.parse_string output
+		(ip,port)
     )
+	let http_post = Filename.concat Fhs.libexecdir "http_post" in
+	let url = Printf.sprintf "http://%s:%s/MessageService" ip port in
+	let output =
+		(try
+			let output, stderr = Forkhelpers.execute_command_get_output http_post [url; str] in
+			debug "execute %s: stdout=[%s],stderr=[%s]" http_post (Stringext.String.replace "\n" ";" output) (Stringext.String.replace "\n" ";" stderr);
+			output
+		with e-> (
+				  raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,(ExnHelper.string_of_exn e)))
+				 )
+		);
+	in
+	Xml.parse_string output
 
 let authenticate_cert cert = 
 	parse_cert_result (http_post cert)

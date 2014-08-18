@@ -65,13 +65,19 @@ let parse_cert_result = function
 						if key = name then head else find_attr name tail
 					| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml attributes"))
 				in 
-				let usrname = find_attr "SubjectDN" attrs in
-				[usrname]
+				let subjectDN = find_attr "SubjectDN" attrs in
+				let role = find_attr "role" attrs in
+				let sli = List.map 
+							(fun x -> String.sub x 0 (String.index x '='), String.sub x (String.index x '=' + 1) (String.length x - String.index x '=' - 1)) 
+							(String.split ',' subjectdn) 
+				in
+				let username = List.assoc "CN" sli in 
+				[username;role]
 			| _ ->
 				raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml body"))
 		in
 		let body = process_body bodychildren in
-		messagestate::body
+		messagestate, body
 				
 	| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml"))
 

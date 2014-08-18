@@ -578,12 +578,6 @@ let login_with_password ~__context ~uname ~pwd ~version = wipe_params_after_fn [
 
 
 let login_with_cert ~__context ~cert ~original ~version = 
-	(**
-	let xml_cert = Printf.sprintf "<?xml version='1.0' encoding='UTF-8'?><message><head><version>1.0</version><serviceType>AuthenService</serviceType></head><body><appId>vGate</appId><authen><authCredential authMode='cert'><detach>%s</detach><original>%s</original></authCredential></authen><accessControl>false</accessControl><attributes attributeType='all'></attributes></body></message>"
-		cert
-		original
-	in
-	**)
 	let xml_cert = Printf.sprintf  
 "<?xml version='1.0' encoding='UTF-8'?>
 <message>
@@ -601,6 +595,18 @@ let login_with_cert ~__context ~cert ~original ~version =
 </authen>
 <accessControl>false</accessControl>
 <attributes attributeType='all'>
+<attr name=\"X509Certificate.NotBefore\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+<attr name=\"X509Certificate.NotAfter\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+<attr name=\"X509Certificate.SubjectDN\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+<attr name=\"X509Certificate.SerialNumber\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+<attr name=\"X509Certificate.IssuerDN\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
+<attr name=\"privilege\" namespace=\"http://www.jit.com.cn/pmi/pms/ns/privilege\"></attr>
+<attr name=\"role\" namespace=\"http://www.jit.com.cn/pmi/pms/ns/role\"></attr>
+<attr name=\"性别\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
+<attr name=\"职务\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
+<attr name=\"身份证\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
+<attr name=\"部门\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
+<attr name=\"机构字典\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
 </attributes>
 </body>
 </message>"
@@ -615,20 +621,17 @@ let login_with_cert ~__context ~cert ~original ~version =
 		then raise (Api_errors.Server_error (error,[uname;msg]))
 		else raise (Api_errors.Server_error (error,["session.login_with_cert";msg]))
 	in
-	let uname = (try
+	let reflexive_membership_closure = (try
 		begin
 			let auth_result = do_external_auth_cert xml_cert in
-			let subjectdn = List.nth auth_result 1 in
-			debug "auth_result------------->%s" subjectdn;
-			let sli = List.map (fun x -> String.sub x 0 (String.index x '='), String.sub x (String.index x '=' + 1) (String.length x - String.index x '=' - 1)) (String.split ',' subjectdn) in
-			let name = List.assoc "CN" sli in 
-			name
+			(snd auth_result)
 		end
 	with (Auth_signature.Auth_failure msg) ->
 		begin
-			thread_delay_and_raise_error "nouser"  msg
+			thread_delay_and_raise_error "nouser" msg
 		end
-	) in	
+	) in
+	let uname = List.hd reflexive_membership_closure in
 	let subject_identifier = uname in
 	let subject_name = uname in
 	if (Context.preauth ~__context) then
@@ -642,7 +645,6 @@ let login_with_cert ~__context ~cert ~original ~version =
 			try
 				let subjects_in_db = Db.Subject.get_all ~__context in
 				let subject_ids_in_db = List.map (fun subj -> (subj,(Db.Subject.get_subject_identifier ~__context ~self:subj))) subjects_in_db in
-				let reflexive_membership_closure = uname::[] in
 				let intersect ext_sids db_sids = List.filter (fun (subj,db_sid) -> List.mem db_sid ext_sids) db_sids in
 				let intersection = intersect reflexive_membership_closure subject_ids_in_db in
 				let in_intersection = (List.length intersection > 0) in

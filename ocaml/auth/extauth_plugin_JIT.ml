@@ -64,6 +64,7 @@ let parse_cert_result = function
 					| Element ("attr", [("name", value); ("namespace", namespace)], (PCData head)::_) :: tail -> 
 						let key = String.sub value ((String.length value) - (String.length name)) (String.length name) in 
 						if key = name then head else find_attr name tail
+					|[] -> ""
 					| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml attributes"))
 				in 
 				let subjectdn = find_attr "SubjectDN" attrs in

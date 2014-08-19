@@ -624,7 +624,7 @@ let login_with_cert ~__context ~cert ~original ~version =
 	let reflexive_membership_closure = (try
 		begin
 			let auth_result = do_external_auth_cert xml_cert in
-			(snd auth_result)
+			auth_result
 		end
 	with (Auth_signature.Auth_failure msg) ->
 		begin

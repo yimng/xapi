@@ -19,6 +19,7 @@ open Xml
 module D = Debug.Debugger(struct let name="extauth_plugin_JIT" end)
 open D
 open Auth_signature
+open Stringext
 
 module AuthJIT : Auth_signature.AUTH_MODULE =
 struct
@@ -65,7 +66,7 @@ let parse_cert_result = function
 						if key = name then head else find_attr name tail
 					| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml attributes"))
 				in 
-				let subjectDN = find_attr "SubjectDN" attrs in
+				let subjectdn = find_attr "SubjectDN" attrs in
 				let role = find_attr "role" attrs in
 				let sli = List.map 
 							(fun x -> String.sub x 0 (String.index x '='), String.sub x (String.index x '=' + 1) (String.length x - String.index x '=' - 1)) 
@@ -77,7 +78,7 @@ let parse_cert_result = function
 				raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml body"))
 		in
 		let body = process_body bodychildren in
-		messagestate, body
+		body
 				
 	| _ -> raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml"))
 

@@ -165,14 +165,10 @@ let get_original () =
 <message>
 	<head>
 		<version>1.0</version>
-		<serviceType>
-			OriginalService
-		</serviceType>
+		<serviceType>OriginalService</serviceType>
 	</head>
 	<body>
-		<appId>
-			vGate
-		</appId>
+		<appId>vGate</appId>
 	</body>
 </message>")
 

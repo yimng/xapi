@@ -73,8 +73,11 @@ let parse_cert_result = function
 							(String.split ',' subjectdn) 
 				in
 				let username = List.assoc "CN" sli in 
-				let group = List.assoc "OU" sli in
-				[username;group]
+				if List.mem_assoc "OU" sli then
+					let group = List.assoc "OU" sli in
+					[username;group]
+				else
+					[username]
 			| _ ->
 				raise (Auth_signature.Auth_service_error (Auth_signature.E_GENERIC,"Can't parse the certificate xml body"))
 		in

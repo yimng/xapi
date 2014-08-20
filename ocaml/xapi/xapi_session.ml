@@ -596,20 +596,6 @@ let login_with_cert ~__context ~cert ~original ~version =
 </authen>
 <accessControl>false</accessControl>
 <attributes attributeType='all'>
-<attr name=\"role\" namespace=\"http://www.jit.com.cn/pmi/pms/ns/role\"></attr>
-<attr name=\"X509Certificate.NotAfter\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
-<attr name=\"X509Certificate.SubjectDN\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
-<attr name=\"X509Certificate.IssuerDN\" namespace=\"http://www.jit.com.cn/cinas/ias/ns/saml/saml11/X.509\"></attr>
-<attr name=\"UMS.UserID\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
-<attr name=\"UMS.Username\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
-<attr name=\"UMS.LogonName\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
-<attr name=\"privilege\" namespace=\"http://www.jit.com.cn/pmi/pms/ns/privilege\"></attr>
-<attr name=\"role\" namespace=\"http://www.jit.com.cn/pmi/pms/ns/role\"></attr>
-<attr name=\"性别\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
-<attr name=\"职务\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
-<attr name=\"身份证\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
-<attr name=\"部门\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
-<attr name=\"机构字典\" namespace=\"http://www.jit.com.cn/ums/ns/user\"></attr>
 </attributes>
 </body>
 </message>"

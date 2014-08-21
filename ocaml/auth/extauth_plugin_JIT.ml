@@ -241,6 +241,10 @@ let query_subject_information subject_identifier =
 	[	("subject-name", subject_identifier);
 		("subject-sid", subject_identifier);
 		("subject-is-group", "false");
+		("subject-account-disabled", "false");
+		("subject-account-expired", "false"); 
+		("subject-account-locked", "false"); 
+		("subject-password-expired", "false") 
 	]
 
 
@@ -252,7 +256,7 @@ let query_subject_information subject_identifier =
 	supports nested groups (as AD does for example)
 *)
 let query_group_membership subject_identifier = 
-	failwith "query_group_membership is not implement"
+	[]
 
 (* unit on_enable(((string*string) list) config_params)
 

@@ -313,16 +313,8 @@ let on_enable config_params =
 		() (* OK, return unit*)
 
 	with (*ERROR, The cert service is not available*)
-	|Auth_signature.Auth_service_error (errtag,errmsg) as e ->
-		(*errors in stdout, let's bubble them up, making them as user-friendly as possible *)
-		debug "Error enabling external authentication for ip %s : %s" ip errmsg;
-		if has_substr errmsg "63" 
-		then begin 
-			raise (Auth_signature.Auth_service_error (Auth_signature.E_DENIED,"The port is not correct"))
-		end
-		else begin (* general error *)
-			raise e
-		end
+	| e ->
+		raise (Auth_signature.Auth_service_error (Auth_signature.E_UNAVAILABLE,"The Certification service is not available"))
 
 (* unit on_disable()
 

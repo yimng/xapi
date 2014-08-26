@@ -299,7 +299,7 @@ let on_enable config_params =
 		let client_sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 		let inet_addr = Unix.inet_addr_of_string ip in
 		Unix.connect client_sock (Unix.ADDR_INET (inet_addr, int_of_string port));
-		Unix.shutdown client_sock SHUTDOWN_ALL;
+		Unix.shutdown client_sock Unix.SHUTDOWN_ALL;
 		let extauthconf = [
 			("ip", ip);
 			("port", port)

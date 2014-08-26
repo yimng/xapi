@@ -361,6 +361,8 @@ let get_original ~__context ~appid =
 		do_external_get_original ()
 	with Extauth.Extauth_is_disabled ->
 		raise (Api_errors.Server_error(Api_errors.auth_is_disabled, []))
+	| Auth_signature.Auth_service_error (_,msg) ->
+		raise (Api_errors.Server_error(Api_errors.session_authentication_failed, ["session.get_original"; msg]))
 
 (* CP-714: Modify session.login_with_password to first try local super-user login; and then call into external auth plugin if this is enabled *)
 (* 1. If the pool master's Host.external_auth_type field is not none, then the Session.login_with_password XenAPI method will:

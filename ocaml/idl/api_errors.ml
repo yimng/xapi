@@ -416,6 +416,7 @@ let pool_auth_disable_failed_wrong_credentials = pool_auth_disable_failed^auth_s
 let pool_auth_disable_failed_permission_denied = pool_auth_disable_failed^auth_suffix_permission_denied
 let subject_cannot_be_resolved = "SUBJECT_CANNOT_BE_RESOLVED"
 let auth_service_error = "AUTH_SERVICE_ERROR"
+let jit_service_error = "JIT_SERVICE_ERROR"
 let subject_already_exists = "SUBJECT_ALREADY_EXISTS"
 let role_not_found = "ROLE_NOT_FOUND"
 let role_already_exists = "ROLE_ALREADY_EXISTS"

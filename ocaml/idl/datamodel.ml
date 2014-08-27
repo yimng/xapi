@@ -737,6 +737,10 @@ let _ =
   error Api_errors.subject_already_exists []
     ~doc:"Subject already exists." ();
 
+  (* External JIT service *)
+  error Api_errors.jit_service_error ["message"]
+    ~doc:"Error querying the external JIT service." ();
+
   (* RBAC *)
   error Api_errors.role_not_found []
     ~doc: "Role cannot be found." ();
